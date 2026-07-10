@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: lims
+          POSTGRES_PASSWORD: lims-dev-only
+          POSTGRES_DB: lims
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U lims -d lims"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://lims:lims-dev-only@localhost:5434/lims
+      # Compliance tests connect as lims_app too; the migration step creates
+      # the role. Runtime uses it via APP_DATABASE_URL, but tests build the
+      # server against the owner db and open lims_app connections explicitly.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        # version is taken from packageManager in package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build web
+        run: pnpm --filter @lims-core/web build

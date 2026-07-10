@@ -1,0 +1,163 @@
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`/api${path}`, {
+    credentials: "same-origin",
+    headers: init?.body ? { "content-type": "application/json" } : {},
+    ...init,
+  });
+  if (!res.ok) {
+    let message = res.statusText;
+    try {
+      const body = (await res.json()) as { error?: string };
+      if (body.error) message = body.error;
+    } catch {
+      // non-JSON error body; keep statusText
+    }
+    throw new ApiError(res.status, message);
+  }
+  return res.json() as Promise<T>;
+}
+
+export interface Me {
+  id: string;
+  username: string;
+  fullName: string;
+  isSystemAdmin: boolean;
+  hasPassword: boolean;
+}
+
+export interface Study {
+  id: string;
+  oid: string;
+  name: string;
+}
+
+export interface Site {
+  id: string;
+  oid: string;
+  name: string;
+}
+
+export interface StorageUnit {
+  id: string;
+  parentId: string | null;
+  name: string;
+  kind: "facility" | "freezer" | "shelf" | "rack" | "box";
+  gridRows: number | null;
+  gridCols: number | null;
+  temperatureC: string | null;
+}
+
+export interface SampleRow {
+  id: string;
+  accessionId: string;
+  sampleType: string;
+  status: string;
+  subjectKey: string | null;
+  collectedAt: string | null;
+  receivedAt: string | null;
+  siteOid: string;
+  storageUnit: string | null;
+  storagePosition: string | null;
+  createdAt: string;
+}
+
+export interface CustodyEvent {
+  id: string;
+  eventType: string;
+  occurredAt: string;
+  actor: string | null;
+  storageUnit: string | null;
+  position: string | null;
+  details: Record<string, unknown> | null;
+}
+
+export interface SampleDetail {
+  id: string;
+  studyId: string;
+  accessionId: string;
+  sampleType: string;
+  status: string;
+  subjectKey: string | null;
+  studyEventOid: string | null;
+  collectedAt: string | null;
+  receivedAt: string | null;
+  storagePosition: string | null;
+  site: Site | null;
+  storageUnit: StorageUnit | null;
+  custody: CustodyEvent[];
+}
+
+export interface ResultVersion {
+  id: string;
+  version: number;
+  value: string;
+  unit: string | null;
+  status: "entered" | "verified";
+  reasonForChange: string | null;
+  enteredBy: string;
+  createdAt: string;
+}
+
+export interface Signature {
+  id: string;
+  meaning: string;
+  recordHash: string;
+  signedAt: string;
+  signer: string;
+  signerName: string;
+  invalidatedAt: string | null;
+}
+
+export interface Order {
+  id: string;
+  status: "ordered" | "resulted" | "verified" | "signed" | "cancelled";
+  createdAt: string;
+  serviceCode: string;
+  serviceName: string;
+  serviceUnit: string | null;
+  requestedBy: string;
+  results: ResultVersion[];
+  signatures: Signature[];
+}
+
+export interface AnalysisService {
+  id: string;
+  code: string;
+  name: string;
+  unit: string | null;
+}
+
+export interface AuditEvent {
+  id: string;
+  occurredAt: string;
+  actorLabel: string;
+  actorName: string | null;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
+  prevHash: string;
+  hash: string;
+}
+
+export interface AuditPage {
+  total: number;
+  events: AuditEvent[];
+  facets: { actions: string[]; entityTypes: string[] };
+}
+
+export interface ChainVerification {
+  scope: string;
+  ok: boolean;
+  problems: { chainScope: string; eventId: number; problem: string }[];
+}
