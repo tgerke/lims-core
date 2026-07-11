@@ -55,6 +55,7 @@ These are implemented, enforced, and covered by tests.
 | Shipments with custody handoff | `core/shipment.ts`, `routes/shipments.ts` | Pack → ship → receive a batch site→central; per-phase `transfer` custody events, in-transit state, send/receive separation of duties (CoC-06, ADR-0007). Collection kits not yet built. |
 | Bulk accessioning + freezer map | `core/bulk.ts`, `routes/studies.ts` | Count-based batch accession (shared fields), optional sequential box-fill (CoC-01/03); read-only, study-scoped freezer-map grid with capacity (ADR-0008). CSV import and interactive placement deferred. |
 | Consent-withdrawal holds + disposal | `core/hold.ts`, `routes/holds.ts` | Hold a sample or a whole subject, propagated to lineage descendants; blocks store/aliquot/ship; releasable to the prior status; terminal, supervisor-only disposal (CoC-05, ADR-0009). Result-entry block and EDC-driven propagation deferred. |
+| Reporting + CSV export | `core/reports.ts`, `routes/reports.ts` | Study-scoped inventory counts (status/type/site), collection→receipt and receipt→storage turnaround metrics, and a PHI-free sample-manifest CSV (ADR-0010). Assay turnaround, trend charts, and ad-hoc query deferred. |
 | 2D barcode / label | `packages/labels` (bwip-js) | DataMatrix + human-readable accession ID, served as PNG. |
 | Freezer storage | `routes/storage.ts`, `core/storage.ts` | facility→freezer→shelf→rack→box hierarchy, position allocation, **one-occupant-per-position** constraint, temperature on units. |
 | Chain of custody | `custody_event` + triggers | Append-only events; collection/receipt/storage/transfer/aliquot/hold/disposal types (some reserved). |
@@ -111,7 +112,9 @@ None of the following exist in the repository yet. This is the real distance to
 - Data import/export and an integration API for EDC/CTMS and external systems
 
 **Operations & platform**
-- Reporting, dashboards, turnaround-time and inventory analytics, ad-hoc query
+- Dashboards, trend/time-series analytics, and ad-hoc query (basic inventory
+  counts, turnaround-time metrics, and a manifest CSV export are now built —
+  Tier 1)
 - Notifications/alerts; temperature-excursion monitoring
 - Configurable workflow / status state-machine (no-code)
 - Document/SOP management and content-addressed WORM attachments (in `plan.md`,
@@ -162,8 +165,10 @@ usable pilot — in rough priority order:
    store/aliquot/ship, release to the prior status, and a terminal
    supervisor-only disposal. Result-entry block and EDC-driven propagation
    still open.
-5. **Reporting/exports.** Inventory counts, turnaround time, and a sample
-   manifest export are the first things a study team will ask for.
+5. ~~**Reporting/exports.**~~ **Done** (Tier 1, ADR-0010): study-scoped
+   inventory counts, collection→receipt / receipt→storage turnaround metrics,
+   and a PHI-free sample-manifest CSV. Assay turnaround, dashboards, and ad-hoc
+   query still open.
 6. **Reagent/lot inventory.** Needed once real assays run.
 
 Each should land with the same discipline the slice already shows: a schema

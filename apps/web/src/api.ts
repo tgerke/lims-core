@@ -197,6 +197,30 @@ export interface ShipmentDetail {
   items: ShipmentItem[];
 }
 
+export interface CountRow {
+  key: string;
+  count: number;
+}
+
+export interface InventoryReport {
+  total: number;
+  byStatus: CountRow[];
+  byType: CountRow[];
+  bySite: CountRow[];
+}
+
+export interface DurationStats {
+  n: number;
+  avgHours: number;
+  medianHours: number;
+  maxHours: number;
+}
+
+export interface TurnaroundReport {
+  collectionToReceipt: DurationStats | null;
+  receiptToStorage: DurationStats | null;
+}
+
 export interface AuditEvent {
   id: string;
   occurredAt: string;

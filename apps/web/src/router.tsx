@@ -8,6 +8,7 @@ import {
 import { AppLayout } from "./app.js";
 import { AuditTrailPage } from "./pages/audit.js";
 import { LoginPage } from "./pages/login.js";
+import { ReportsPage } from "./pages/reports.js";
 import { SampleDetailPage } from "./pages/sample-detail.js";
 import { SamplesPage } from "./pages/samples.js";
 import { ShipmentDetailPage } from "./pages/shipment-detail.js";
@@ -66,6 +67,12 @@ const storageRoute = createRoute({
   component: StoragePage,
 });
 
+const reportsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/reports",
+  component: ReportsPage,
+});
+
 const auditRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/audit",
@@ -81,6 +88,7 @@ const routeTree = rootRoute.addChildren([
     shipmentsRoute,
     shipmentDetailRoute,
     storageRoute,
+    reportsRoute,
     auditRoute,
   ]),
 ]);

@@ -6,6 +6,7 @@ import { authPlugin } from "./auth/plugin.js";
 import { auditRoutes } from "./routes/audit.js";
 import { holdRoutes } from "./routes/holds.js";
 import { orderRoutes } from "./routes/orders.js";
+import { reportRoutes } from "./routes/reports.js";
 import { resultRoutes } from "./routes/results.js";
 import { sampleRoutes } from "./routes/samples.js";
 import { shipmentRoutes } from "./routes/shipments.js";
@@ -44,6 +45,7 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
   await server.register(storageRoutes);
   await server.register(orderRoutes);
   await server.register(resultRoutes);
+  await server.register(reportRoutes);
   await server.register(auditRoutes);
 
   server.get("/health", async () => {
