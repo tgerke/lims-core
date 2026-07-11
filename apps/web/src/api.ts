@@ -148,6 +148,18 @@ export interface AnalysisService {
   unit: string | null;
 }
 
+export interface BoxMap {
+  unit: {
+    id: string;
+    name: string;
+    gridRows: number;
+    gridCols: number;
+    temperatureC: string | null;
+  };
+  occupants: { position: string; sampleId: string; accessionId: string; sampleType: string }[];
+  othersOccupiedPositions: string[];
+}
+
 export interface ShipmentRow {
   id: string;
   shipmentNumber: string;

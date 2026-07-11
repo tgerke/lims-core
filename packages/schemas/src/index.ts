@@ -39,6 +39,18 @@ export const accessionRequestSchema = z.object({
 });
 export type AccessionRequest = z.infer<typeof accessionRequestSchema>;
 
+export const bulkAccessionSchema = z.object({
+  siteId: z.uuid(),
+  sampleType: sampleTypeSchema,
+  count: z.number().int().min(1).max(96),
+  subjectKey: z.string().min(1).max(64).optional(),
+  studyEventOid: z.string().min(1).max(128).optional(),
+  collectedAt: z.iso.datetime({ offset: true }).optional(),
+  // Optional box to fill sequentially from the first free position.
+  storageUnitId: z.uuid().optional(),
+});
+export type BulkAccessionRequest = z.infer<typeof bulkAccessionSchema>;
+
 export const storeRequestSchema = z.object({
   storageUnitId: z.uuid(),
   position: z

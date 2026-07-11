@@ -2,7 +2,7 @@ import { SAMPLE_TYPES } from "@lims-core/schemas";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
-import { api, type SampleRow, type Site } from "../api.js";
+import { api, type SampleRow, type Site, type StorageUnit } from "../api.js";
 import { useStudy } from "../app.js";
 import {
   Button,
@@ -110,9 +110,143 @@ function AccessionModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+function BulkAccessionModal({ onClose }: { onClose: () => void }) {
+  const { study } = useStudy();
+  const queryClient = useQueryClient();
+  const sitesQuery = useQuery({
+    queryKey: ["sites", study.id],
+    queryFn: () => api<Site[]>(`/studies/${study.id}/sites`),
+  });
+  const unitsQuery = useQuery({
+    queryKey: ["storage-units", study.id],
+    queryFn: () => api<StorageUnit[]>(`/studies/${study.id}/storage-units`),
+  });
+  const [siteId, setSiteId] = useState("");
+  const [sampleType, setSampleType] = useState<string>("serum");
+  const [count, setCount] = useState("12");
+  const [subjectKey, setSubjectKey] = useState("");
+  const [storageUnitId, setStorageUnitId] = useState("");
+
+  const boxes = (unitsQuery.data ?? []).filter((u) => u.kind === "box");
+  const pathTo = (unit: StorageUnit): string => {
+    const byId = new Map((unitsQuery.data ?? []).map((u) => [u.id, u]));
+    const parts = [unit.name];
+    let current = unit;
+    while (current.parentId && byId.has(current.parentId)) {
+      current = byId.get(current.parentId) as StorageUnit;
+      parts.unshift(current.name);
+    }
+    return parts.join(" / ");
+  };
+
+  const bulk = useMutation({
+    mutationFn: () =>
+      api<{ count: number }>(`/studies/${study.id}/samples/bulk`, {
+        method: "POST",
+        body: JSON.stringify({
+          siteId: siteId || sitesQuery.data?.[0]?.id,
+          sampleType,
+          count: Number(count),
+          ...(subjectKey ? { subjectKey } : {}),
+          ...(storageUnitId ? { storageUnitId } : {}),
+        }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["samples", study.id] });
+      onClose();
+    },
+  });
+
+  return (
+    <Modal title="Bulk accession" onClose={onClose}>
+      <form
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault();
+          if (Number(count) > 0) bulk.mutate();
+        }}
+        className="space-y-4"
+      >
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Site">
+            <select
+              className={inputClass}
+              value={siteId || (sitesQuery.data?.[0]?.id ?? "")}
+              onChange={(e) => setSiteId(e.target.value)}
+            >
+              {(sitesQuery.data ?? []).map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.oid} — {s.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="How many" hint="1–96">
+            <input
+              className={inputClass}
+              type="number"
+              min="1"
+              max="96"
+              value={count}
+              onChange={(e) => setCount(e.target.value)}
+            />
+          </Field>
+        </div>
+        <Field label="Sample type">
+          <select
+            className={inputClass}
+            value={sampleType}
+            onChange={(e) => setSampleType(e.target.value)}
+          >
+            {SAMPLE_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t.replace(/_/g, " ")}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Subject key (EDC reference)" hint="Optional; applied to every sample.">
+          <input
+            className={inputClass}
+            value={subjectKey}
+            onChange={(e) => setSubjectKey(e.target.value)}
+            placeholder="SUBJ-001"
+          />
+        </Field>
+        <Field
+          label="Fill box (optional)"
+          hint="Places the batch sequentially from the first free position."
+        >
+          <select
+            className={inputClass}
+            value={storageUnitId}
+            onChange={(e) => setStorageUnitId(e.target.value)}
+          >
+            <option value="">Don't store yet</option>
+            {boxes.map((b) => (
+              <option key={b.id} value={b.id}>
+                {pathTo(b)}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <ErrorNote message={bulk.error ? bulk.error.message : null} />
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={bulk.isPending}>
+            Accession {count || 0}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 export function SamplesPage() {
   const { study, permissions } = useStudy();
   const [showAccession, setShowAccession] = useState(false);
+  const [showBulk, setShowBulk] = useState(false);
   const samples = useQuery({
     queryKey: ["samples", study.id],
     queryFn: () => api<SampleRow[]>(`/studies/${study.id}/samples`),
@@ -128,7 +262,12 @@ export function SamplesPage() {
           </p>
         </div>
         {permissions.includes("sample.accession") && (
-          <Button onClick={() => setShowAccession(true)}>+ Accession sample</Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setShowBulk(true)}>
+              Bulk accession
+            </Button>
+            <Button onClick={() => setShowAccession(true)}>+ Accession sample</Button>
+          </div>
         )}
       </div>
 
@@ -182,6 +321,7 @@ export function SamplesPage() {
       </Card>
 
       {showAccession && <AccessionModal onClose={() => setShowAccession(false)} />}
+      {showBulk && <BulkAccessionModal onClose={() => setShowBulk(false)} />}
     </div>
   );
 }

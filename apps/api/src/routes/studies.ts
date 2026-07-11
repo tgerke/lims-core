@@ -1,5 +1,12 @@
-import { analysisServices, sites, storageUnits, studies, userStudyRoles } from "@lims-core/db";
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import {
+  analysisServices,
+  samples,
+  sites,
+  storageUnits,
+  studies,
+  userStudyRoles,
+} from "@lims-core/db";
+import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import type { FastifyPluginAsync } from "fastify";
 import { requireAuth } from "../auth/plugin.js";
 import { effectivePermissions, isStudyMember } from "../auth/rbac.js";
@@ -53,6 +60,69 @@ export const studyRoutes: FastifyPluginAsync = async (app) => {
       // clients assemble the tree from parentId.
       const rows = await app.db.select().from(storageUnits).orderBy(asc(storageUnits.name));
       return rows.filter((u) => u.studyId === null || u.studyId === studyId);
+    },
+  );
+
+  // Freezer map: a box's grid and its occupancy, scoped to this study. Other
+  // studies' samples in a shared box show as occupied positions only — never
+  // their accession ids (study-scoped visibility, ADR-0008).
+  app.get(
+    "/studies/:studyId/storage-units/:unitId/map",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const { studyId, unitId } = request.params as { studyId: string; unitId: string };
+      const user = request.user;
+      if (!user) return reply.code(401).send({ error: "authentication required" });
+      if (!user.isSystemAdmin && !(await isStudyMember(app.db, user.id, studyId))) {
+        return reply.code(403).send({ error: "not a member of this study" });
+      }
+      const [unit] = await app.db
+        .select()
+        .from(storageUnits)
+        .where(eq(storageUnits.id, unitId))
+        .limit(1);
+      if (!unit) return reply.code(404).send({ error: "storage unit not found" });
+      if (unit.kind !== "box" || !unit.gridRows || !unit.gridCols) {
+        return reply.code(400).send({ error: "storage unit is not a box with a grid" });
+      }
+      if (unit.studyId && unit.studyId !== studyId) {
+        return reply.code(403).send({ error: "storage unit is restricted to a different study" });
+      }
+
+      const rows = await app.db
+        .select({
+          position: samples.storagePosition,
+          sampleId: samples.id,
+          accessionId: samples.accessionId,
+          sampleType: samples.sampleType,
+          sampleStudyId: samples.studyId,
+        })
+        .from(samples)
+        .where(and(eq(samples.storageUnitId, unitId), isNotNull(samples.storagePosition)));
+
+      const occupants = rows
+        .filter((r) => r.sampleStudyId === studyId)
+        .map((r) => ({
+          position: r.position,
+          sampleId: r.sampleId,
+          accessionId: r.accessionId,
+          sampleType: r.sampleType,
+        }));
+      const othersOccupiedPositions = rows
+        .filter((r) => r.sampleStudyId !== studyId)
+        .map((r) => r.position);
+
+      return {
+        unit: {
+          id: unit.id,
+          name: unit.name,
+          gridRows: unit.gridRows,
+          gridCols: unit.gridCols,
+          temperatureC: unit.temperatureC,
+        },
+        occupants,
+        othersOccupiedPositions,
+      };
     },
   );
 

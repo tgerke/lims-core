@@ -53,6 +53,7 @@ These are implemented, enforced, and covered by tests.
 | Specimen accession | `routes/samples.ts`, `core/accession.ts` | Study/site scoping, specimen typing, EDC subject/visit **reference only** (no PHI), per-study accession IDs. |
 | Aliquot workflow + volume | `core/aliquot.ts`, `routes/samples.ts` | Parent→child aliquots with parent-suffixed IDs, `sample_lineage`, `aliquot` custody events; optional per-sample quantity, conserved and deducted on aliquoting, parent depleted at zero (CoC-04, ADR-0006). |
 | Shipments with custody handoff | `core/shipment.ts`, `routes/shipments.ts` | Pack → ship → receive a batch site→central; per-phase `transfer` custody events, in-transit state, send/receive separation of duties (CoC-06, ADR-0007). Collection kits not yet built. |
+| Bulk accessioning + freezer map | `core/bulk.ts`, `routes/studies.ts` | Count-based batch accession (shared fields), optional sequential box-fill (CoC-01/03); read-only, study-scoped freezer-map grid with capacity (ADR-0008). CSV import and interactive placement deferred. |
 | 2D barcode / label | `packages/labels` (bwip-js) | DataMatrix + human-readable accession ID, served as PNG. |
 | Freezer storage | `routes/storage.ts`, `core/storage.ts` | facility→freezer→shelf→rack→box hierarchy, position allocation, **one-occupant-per-position** constraint, temperature on units. |
 | Chain of custody | `custody_event` + triggers | Append-only events; collection/receipt/storage/transfer/aliquot/hold/disposal types (some reserved). |
@@ -94,8 +95,8 @@ None of the following exist in the repository yet. This is the real distance to
   (aliquot volume/quantity itself is now built — Tier 1)
 - Collection kits sent to sites (sample-bearing shipments with custody handoff
   are now built — Tier 1)
-- Bulk / batch accessioning and plate/rack (grid) operations
-- Freezer-map visualization and capacity dashboards
+- CSV/manifest bulk import and interactive freezer-map placement (count-based
+  bulk accession and a read-only map with capacity are now built — Tier 1)
 - Sample request, reservation, and distribution workflows
 - Reagent/consumable **inventory and lot/expiry** tracking
 
@@ -154,7 +155,10 @@ usable pilot — in rough priority order:
 2. ~~**Kits & shipments with custody handoff.**~~ **Shipments done** (Tier 1,
    CoC-06, ADR-0007): pack → ship → receive site→central with an unbroken
    custody trail. Collection kits (outbound empty containers) still open.
-3. **Bulk accessioning + freezer-map UI.** Throughput and usability.
+3. ~~**Bulk accessioning + freezer-map UI.**~~ **Done** (Tier 1, ADR-0008):
+   count-based batch accession with optional box-fill, plus a read-only,
+   study-scoped freezer map with capacity. CSV import and interactive placement
+   still open.
 4. **Consent-withdrawal holds (CoC-05).** Finish the reserved control; it is a
    real regulatory obligation, not a nice-to-have.
 5. **Reporting/exports.** Inventory counts, turnaround time, and a sample

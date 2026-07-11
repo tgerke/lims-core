@@ -14,6 +14,32 @@ export function positionLabels(gridRows: number, gridCols: number): string[] {
   return labels;
 }
 
+/**
+ * Ordered free positions in a box (A1..HN minus occupied), for batch placement
+ * and capacity checks. Validates the unit is a box with a grid.
+ */
+export async function freeBoxPositions(tx: Tx, storageUnitId: string): Promise<string[]> {
+  const [unit] = await tx
+    .select()
+    .from(storageUnits)
+    .where(eq(storageUnits.id, storageUnitId))
+    .limit(1);
+  if (!unit) throw new DomainError("storage unit not found", 404);
+  if (unit.kind !== "box") throw new DomainError("samples can only be stored in a box");
+  if (!unit.gridRows || !unit.gridCols) throw new DomainError("box has no position grid");
+
+  const valid = positionLabels(unit.gridRows, unit.gridCols);
+  const occupied = new Set(
+    (
+      await tx
+        .select({ position: samples.storagePosition })
+        .from(samples)
+        .where(and(eq(samples.storageUnitId, unit.id), isNotNull(samples.storagePosition)))
+    ).map((r) => r.position as string),
+  );
+  return valid.filter((p) => !occupied.has(p));
+}
+
 export interface StoreInput {
   sampleId: string;
   storageUnitId: string;

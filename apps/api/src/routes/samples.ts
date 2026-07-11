@@ -1,4 +1,4 @@
-import { accessionSample, aliquotSample, withActor } from "@lims-core/core";
+import { accessionSample, aliquotSample, bulkAccessionSamples, withActor } from "@lims-core/core";
 import {
   custodyEvents,
   sampleLineage,
@@ -9,7 +9,11 @@ import {
   users,
 } from "@lims-core/db";
 import { generateDataMatrixPng } from "@lims-core/labels/datamatrix";
-import { accessionRequestSchema, aliquotRequestSchema } from "@lims-core/schemas";
+import {
+  accessionRequestSchema,
+  aliquotRequestSchema,
+  bulkAccessionSchema,
+} from "@lims-core/schemas";
 import { asc, desc, eq } from "drizzle-orm";
 import type { FastifyPluginAsync } from "fastify";
 import { requireAuth, requirePermission } from "../auth/plugin.js";
@@ -88,6 +92,55 @@ export const sampleRoutes: FastifyPluginAsync = async (app) => {
           }),
         );
         return reply.code(201).send(sample);
+      } catch (err) {
+        return sendDomainError(reply, err);
+      }
+    },
+  );
+
+  app.post(
+    "/studies/:studyId/samples/bulk",
+    {
+      preHandler: requirePermission("sample.accession", (request) => {
+        const { studyId } = request.params as { studyId: string };
+        const body = (request.body ?? {}) as { siteId?: string };
+        return { studyId, ...(body.siteId ? { siteId: body.siteId } : {}) };
+      }),
+    },
+    async (request, reply) => {
+      const { studyId } = request.params as { studyId: string };
+      const user = request.user;
+      if (!user) return reply.code(401).send({ error: "authentication required" });
+      const parsed = bulkAccessionSchema.safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: parsed.error.message });
+
+      const [study] = await app.db.select().from(studies).where(eq(studies.id, studyId)).limit(1);
+      if (!study) return reply.code(404).send({ error: "study not found" });
+      const [site] = await app.db
+        .select()
+        .from(sites)
+        .where(eq(sites.id, parsed.data.siteId))
+        .limit(1);
+      if (!site || site.studyId !== studyId) {
+        return reply.code(400).send({ error: "site does not belong to this study" });
+      }
+
+      try {
+        const created = await withActor(app.db, { userId: user.id, label: user.username }, (tx) =>
+          bulkAccessionSamples(tx, {
+            studyId,
+            studyOid: study.oid,
+            siteId: site.id,
+            sampleType: parsed.data.sampleType,
+            count: parsed.data.count,
+            ...(parsed.data.subjectKey ? { subjectKey: parsed.data.subjectKey } : {}),
+            ...(parsed.data.studyEventOid ? { studyEventOid: parsed.data.studyEventOid } : {}),
+            ...(parsed.data.collectedAt ? { collectedAt: new Date(parsed.data.collectedAt) } : {}),
+            ...(parsed.data.storageUnitId ? { storageUnitId: parsed.data.storageUnitId } : {}),
+            actorId: user.id,
+          }),
+        );
+        return reply.code(201).send({ count: created.length, samples: created });
       } catch (err) {
         return sendDomainError(reply, err);
       }

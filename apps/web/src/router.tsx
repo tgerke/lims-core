@@ -12,6 +12,7 @@ import { SampleDetailPage } from "./pages/sample-detail.js";
 import { SamplesPage } from "./pages/samples.js";
 import { ShipmentDetailPage } from "./pages/shipment-detail.js";
 import { ShipmentsPage } from "./pages/shipments.js";
+import { StoragePage } from "./pages/storage.js";
 
 const rootRoute = createRootRoute({ component: Outlet });
 
@@ -59,6 +60,12 @@ const shipmentDetailRoute = createRoute({
   component: ShipmentDetailPage,
 });
 
+const storageRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/storage",
+  component: StoragePage,
+});
+
 const auditRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/audit",
@@ -73,6 +80,7 @@ const routeTree = rootRoute.addChildren([
     sampleDetailRoute,
     shipmentsRoute,
     shipmentDetailRoute,
+    storageRoute,
     auditRoute,
   ]),
 ]);

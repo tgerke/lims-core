@@ -2,6 +2,7 @@ export * from "./accession.js";
 export * from "./actor.js";
 export * from "./aliquot.js";
 export * from "./audit.js";
+export * from "./bulk.js";
 export * from "./custody.js";
 export * from "./errors.js";
 export * from "./esign.js";

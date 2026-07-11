@@ -1,4 +1,4 @@
-import { accessionSample, createShipment, withActor } from "@lims-core/core";
+import { accessionSample, bulkAccessionSamples, createShipment, withActor } from "@lims-core/core";
 import {
   analysisServices,
   createDb,
@@ -142,10 +142,14 @@ async function main() {
         .values({ parentId: shelf.id, name: "Rack 1", kind: "rack" })
         .returning();
       if (!rack) throw new Error("rack insert failed");
-      await tx.insert(storageUnits).values([
-        { parentId: rack.id, name: "Box A", kind: "box", gridRows: 9, gridCols: 9 },
-        { parentId: rack.id, name: "Box B", kind: "box", gridRows: 9, gridCols: 9 },
-      ]);
+      const [boxA] = await tx
+        .insert(storageUnits)
+        .values([
+          { parentId: rack.id, name: "Box A", kind: "box", gridRows: 9, gridCols: 9 },
+          { parentId: rack.id, name: "Box B", kind: "box", gridRows: 9, gridCols: 9 },
+        ])
+        .returning();
+      if (!boxA) throw new Error("box insert failed");
 
       await tx.insert(analysisServices).values([
         { code: "PSA", name: "Prostate-Specific Antigen", unit: "ng/mL" },
@@ -190,6 +194,19 @@ async function main() {
         originSiteId: site.id,
         carrier: "World Courier",
         sampleIds: packed.map((s) => s.id),
+        actorId: byUsername("tchen"),
+      });
+
+      // A batch of serum specimens filling the first positions of Box A, so the
+      // freezer map shows real occupancy.
+      await bulkAccessionSamples(tx, {
+        studyId: study.id,
+        studyOid: study.oid,
+        siteId: site.id,
+        sampleType: "serum",
+        count: 8,
+        collectedAt: new Date(),
+        storageUnitId: boxA.id,
         actorId: byUsername("tchen"),
       });
     });
