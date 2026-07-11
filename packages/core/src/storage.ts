@@ -66,7 +66,7 @@ export async function storeSample(tx: Tx, input: StoreInput) {
 
   const [sample] = await tx.select().from(samples).where(eq(samples.id, input.sampleId)).limit(1);
   if (!sample) throw new DomainError("sample not found", 404);
-  if (sample.status === "disposed" || sample.status === "depleted") {
+  if (sample.status === "disposed" || sample.status === "depleted" || sample.status === "on_hold") {
     throw new DomainError(`sample is ${sample.status} and cannot be stored`, 409);
   }
   if (unit.studyId && unit.studyId !== sample.studyId) {

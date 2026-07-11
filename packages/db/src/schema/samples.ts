@@ -14,6 +14,7 @@ export const samples = pgTable("sample", {
   accessionId: text("accession_id").notNull().unique(),
   sampleType: text("sample_type").notNull(),
   status: text("status").notNull().default("registered"),
+  preHoldStatus: text("pre_hold_status"),
   quantity: numeric("quantity"),
   quantityUnit: text("quantity_unit"),
   initialQuantity: numeric("initial_quantity"),

@@ -67,6 +67,26 @@ export const aliquotRequestSchema = z.object({
 });
 export type AliquotRequest = z.infer<typeof aliquotRequestSchema>;
 
+// Consent-withdrawal holds and disposal (CoC-05). Target exactly one of a single
+// sample or a subject (all that subject's samples); both expand to lineage
+// descendants server-side. Reason is required for the audit trail.
+const holdTargetShape = {
+  sampleId: z.uuid().optional(),
+  subjectKey: z.string().min(1).max(64).optional(),
+  reason: z.string().min(1).max(500),
+};
+const oneTarget = (d: { sampleId?: string | undefined; subjectKey?: string | undefined }) =>
+  (d.sampleId ? 1 : 0) + (d.subjectKey ? 1 : 0) === 1;
+const oneTargetMsg = { message: "provide exactly one of sampleId or subjectKey" };
+
+export const holdRequestSchema = z.object(holdTargetShape).refine(oneTarget, oneTargetMsg);
+export type HoldRequest = z.infer<typeof holdRequestSchema>;
+
+export const disposeRequestSchema = z
+  .object({ ...holdTargetShape, method: z.string().min(1).max(200).optional() })
+  .refine(oneTarget, oneTargetMsg);
+export type DisposeRequest = z.infer<typeof disposeRequestSchema>;
+
 export const createShipmentSchema = z.object({
   destination: z.string().min(1).max(200),
   originSiteId: z.uuid().optional(),

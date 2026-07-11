@@ -94,6 +94,7 @@ export interface SampleDetail {
   accessionId: string;
   sampleType: string;
   status: string;
+  preHoldStatus: string | null;
   quantity: string | null;
   quantityUnit: string | null;
   initialQuantity: string | null;

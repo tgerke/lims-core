@@ -24,7 +24,7 @@ export interface AliquotInput {
 export async function aliquotSample(tx: Tx, input: AliquotInput) {
   const [parent] = await tx.select().from(samples).where(eq(samples.id, input.parentId)).limit(1);
   if (!parent) throw new DomainError("sample not found", 404);
-  if (parent.status === "disposed" || parent.status === "depleted") {
+  if (parent.status === "disposed" || parent.status === "depleted" || parent.status === "on_hold") {
     throw new DomainError(`sample is ${parent.status} and cannot be aliquoted`, 409);
   }
 

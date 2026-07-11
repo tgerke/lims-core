@@ -276,6 +276,96 @@ function AliquotPanel({ sample }: { sample: SampleDetail }) {
   );
 }
 
+function latestHoldReason(sample: SampleDetail): string | null {
+  for (let i = sample.custody.length - 1; i >= 0; i--) {
+    const e = sample.custody[i];
+    if (e?.eventType === "hold") {
+      const reason = e.details?.reason;
+      return typeof reason === "string" ? reason : null;
+    }
+  }
+  return null;
+}
+
+// Consent-withdrawal holds and disposal for this one sample (CoC-05). Subject-wide
+// holds are available on the API but scoped here to the sample in view.
+function HoldPanel({ sample }: { sample: SampleDetail }) {
+  const { study, permissions } = useStudy();
+  const queryClient = useQueryClient();
+  const [reason, setReason] = useState("");
+  const canHold = permissions.includes("sample.hold");
+  const canDispose = permissions.includes("sample.dispose");
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["sample", sample.id] });
+    setReason("");
+  };
+  const act = (path: string) =>
+    api(`/studies/${study.id}/${path}`, {
+      method: "POST",
+      body: JSON.stringify({ sampleId: sample.id, reason }),
+    });
+  const hold = useMutation({ mutationFn: () => act("holds"), onSuccess: invalidate });
+  const release = useMutation({ mutationFn: () => act("holds/release"), onSuccess: invalidate });
+  const dispose = useMutation({ mutationFn: () => act("disposals"), onSuccess: invalidate });
+  const pending = hold.isPending || release.isPending || dispose.isPending;
+  const error = hold.error || release.error || dispose.error;
+
+  if (!canHold && !canDispose) return null;
+  if (sample.status === "disposed") {
+    return (
+      <Card title="Hold & disposal">
+        <p className="text-sm text-slate-500">Sample is disposed. No further custody actions.</p>
+      </Card>
+    );
+  }
+
+  const onHold = sample.status === "on_hold";
+  return (
+    <Card title="Hold & disposal">
+      {onHold && (
+        <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          On hold{latestHoldReason(sample) ? ` — ${latestHoldReason(sample)}` : ""}. Blocked from
+          aliquoting, storage, and shipment.
+        </p>
+      )}
+      <Field
+        label="Reason"
+        hint="Recorded on the custody event (e.g. consent withdrawn, quarantine)."
+      >
+        <input
+          className={inputClass}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder={onHold ? "Reason for release / disposal" : "Reason for hold"}
+        />
+      </Field>
+      <ErrorNote message={error ? error.message : null} />
+      <div className="mt-3 flex gap-2">
+        {canHold &&
+          (onHold ? (
+            <Button
+              variant="secondary"
+              onClick={() => release.mutate()}
+              disabled={!reason || pending}
+            >
+              Release hold
+            </Button>
+          ) : (
+            <Button variant="secondary" onClick={() => hold.mutate()} disabled={!reason || pending}>
+              Place hold
+            </Button>
+          ))}
+        {canDispose && (
+          <Button variant="danger" onClick={() => dispose.mutate()} disabled={!reason || pending}>
+            Dispose
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 function SignModal({ order, onClose }: { order: Order; onClose: () => void }) {
   const queryClient = useQueryClient();
   const [password, setPassword] = useState("");
@@ -605,6 +695,7 @@ export function SampleDetailPage() {
         <div className="space-y-6">
           <StoragePanel sample={s} />
           <AliquotPanel sample={s} />
+          <HoldPanel sample={s} />
           <LineagePanel sample={s} />
           <CustodyTimeline sample={s} />
         </div>

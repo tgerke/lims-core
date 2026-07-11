@@ -4,6 +4,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import type { AuthConfig } from "./auth/config.js";
 import { authPlugin } from "./auth/plugin.js";
 import { auditRoutes } from "./routes/audit.js";
+import { holdRoutes } from "./routes/holds.js";
 import { orderRoutes } from "./routes/orders.js";
 import { resultRoutes } from "./routes/results.js";
 import { sampleRoutes } from "./routes/samples.js";
@@ -38,6 +39,7 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
   });
   await server.register(studyRoutes);
   await server.register(sampleRoutes);
+  await server.register(holdRoutes);
   await server.register(shipmentRoutes);
   await server.register(storageRoutes);
   await server.register(orderRoutes);

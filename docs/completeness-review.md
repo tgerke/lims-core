@@ -54,6 +54,7 @@ These are implemented, enforced, and covered by tests.
 | Aliquot workflow + volume | `core/aliquot.ts`, `routes/samples.ts` | Parent→child aliquots with parent-suffixed IDs, `sample_lineage`, `aliquot` custody events; optional per-sample quantity, conserved and deducted on aliquoting, parent depleted at zero (CoC-04, ADR-0006). |
 | Shipments with custody handoff | `core/shipment.ts`, `routes/shipments.ts` | Pack → ship → receive a batch site→central; per-phase `transfer` custody events, in-transit state, send/receive separation of duties (CoC-06, ADR-0007). Collection kits not yet built. |
 | Bulk accessioning + freezer map | `core/bulk.ts`, `routes/studies.ts` | Count-based batch accession (shared fields), optional sequential box-fill (CoC-01/03); read-only, study-scoped freezer-map grid with capacity (ADR-0008). CSV import and interactive placement deferred. |
+| Consent-withdrawal holds + disposal | `core/hold.ts`, `routes/holds.ts` | Hold a sample or a whole subject, propagated to lineage descendants; blocks store/aliquot/ship; releasable to the prior status; terminal, supervisor-only disposal (CoC-05, ADR-0009). Result-entry block and EDC-driven propagation deferred. |
 | 2D barcode / label | `packages/labels` (bwip-js) | DataMatrix + human-readable accession ID, served as PNG. |
 | Freezer storage | `routes/storage.ts`, `core/storage.ts` | facility→freezer→shelf→rack→box hierarchy, position allocation, **one-occupant-per-position** constraint, temperature on units. |
 | Chain of custody | `custody_event` + triggers | Append-only events; collection/receipt/storage/transfer/aliquot/hold/disposal types (some reserved). |
@@ -77,9 +78,6 @@ append-only table, but there is no logic or UI. A buyer should read these as
   `pool` relations, but the derivation (e.g. blood → DNA) and many-parent pooling
   workflows are not built yet. Concentration and freeze-thaw counts are also still
   absent.
-- **Consent-withdrawal holds (CoC-05).** `on_hold`/`disposed` statuses and
-  `hold`/`hold_release`/`disposal` custody types are reserved; the propagation
-  logic from EDC is roadmap.
 - **Analytical module.** Test specifications/acceptance criteria, calculated
   results, worksheets, QC samples (blanks/spikes/duplicates/controls), and
   Certificate of Analysis generation are designed in `plan.md` but absent from
@@ -159,8 +157,11 @@ usable pilot — in rough priority order:
    count-based batch accession with optional box-fill, plus a read-only,
    study-scoped freezer map with capacity. CSV import and interactive placement
    still open.
-4. **Consent-withdrawal holds (CoC-05).** Finish the reserved control; it is a
-   real regulatory obligation, not a nice-to-have.
+4. ~~**Consent-withdrawal holds (CoC-05).**~~ **Done** (Tier 1, CoC-05,
+   ADR-0009): hold a sample or a whole subject with lineage propagation, block
+   store/aliquot/ship, release to the prior status, and a terminal
+   supervisor-only disposal. Result-entry block and EDC-driven propagation
+   still open.
 5. **Reporting/exports.** Inventory counts, turnaround time, and a sample
    manifest export are the first things a study team will ask for.
 6. **Reagent/lot inventory.** Needed once real assays run.

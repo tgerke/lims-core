@@ -6,6 +6,7 @@ export * from "./bulk.js";
 export * from "./custody.js";
 export * from "./errors.js";
 export * from "./esign.js";
+export * from "./hold.js";
 export * from "./permissions.js";
 export * from "./results.js";
 export * from "./shipment.js";
