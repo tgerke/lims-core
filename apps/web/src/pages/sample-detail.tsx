@@ -7,6 +7,7 @@ import {
   api,
   type Order,
   type SampleDetail,
+  type Specification,
   type StorageUnit,
 } from "../api.js";
 import { useStudy } from "../app.js";
@@ -697,6 +698,7 @@ function OrderCard({ order }: { order: Order }) {
               <th className="py-1 pr-3">v</th>
               <th className="py-1 pr-3">Value</th>
               <th className="py-1 pr-3">Status</th>
+              <th className="py-1 pr-3">QC</th>
               <th className="py-1 pr-3">By</th>
               <th className="py-1">Reason</th>
             </tr>
@@ -711,6 +713,9 @@ function OrderCard({ order }: { order: Order }) {
                 </td>
                 <td className="py-1.5 pr-3">
                   <StatusBadge status={r.status} />
+                </td>
+                <td className="py-1.5 pr-3">
+                  <StatusBadge status={r.qcStatus} />
                 </td>
                 <td className="py-1.5 pr-3">{r.enteredBy}</td>
                 <td className="py-1.5 text-slate-500">{r.reasonForChange ?? "—"}</td>
@@ -754,6 +759,102 @@ function OrderCard({ order }: { order: Order }) {
   );
 }
 
+// Minimal acceptance-criteria editor (ADR-0017): set a numeric range on a
+// service; results are evaluated against the active spec at entry.
+function SpecModal({ services, onClose }: { services: AnalysisService[]; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const [serviceId, setServiceId] = useState("");
+  const [lowerLimit, setLowerLimit] = useState("");
+  const [upperLimit, setUpperLimit] = useState("");
+
+  const existing = useQuery({
+    queryKey: ["specifications", serviceId],
+    queryFn: () => api<Specification[]>(`/analysis-services/${serviceId}/specifications`),
+    enabled: serviceId !== "",
+  });
+  const activeSpec = existing.data?.find((s) => s.active) ?? null;
+
+  const save = useMutation({
+    mutationFn: () =>
+      api(`/analysis-services/${serviceId}/specifications`, {
+        method: "POST",
+        body: JSON.stringify({
+          ...(lowerLimit !== "" ? { lowerLimit: Number(lowerLimit) } : {}),
+          ...(upperLimit !== "" ? { upperLimit: Number(upperLimit) } : {}),
+        }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["specifications", serviceId] });
+      onClose();
+    },
+  });
+
+  const valid = serviceId !== "" && (lowerLimit !== "" || upperLimit !== "");
+
+  return (
+    <Modal title="Set acceptance criteria" onClose={onClose}>
+      <form
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault();
+          if (valid) save.mutate();
+        }}
+        className="space-y-4"
+      >
+        <Field label="Service">
+          <select
+            className={inputClass}
+            value={serviceId}
+            onChange={(e) => setServiceId(e.target.value)}
+          >
+            <option value="">Choose a service…</option>
+            {services.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.code} — {s.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        {activeSpec && (
+          <p className="text-xs text-slate-500">
+            Current: {activeSpec.lowerLimit ?? "−∞"} to {activeSpec.upperLimit ?? "∞"}
+            {activeSpec.expectedValue ? ` (expects ${activeSpec.expectedValue})` : ""}. Saving
+            supersedes it.
+          </p>
+        )}
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Lower limit">
+            <input
+              className={inputClass}
+              type="number"
+              step="any"
+              value={lowerLimit}
+              onChange={(e) => setLowerLimit(e.target.value)}
+            />
+          </Field>
+          <Field label="Upper limit">
+            <input
+              className={inputClass}
+              type="number"
+              step="any"
+              value={upperLimit}
+              onChange={(e) => setUpperLimit(e.target.value)}
+            />
+          </Field>
+        </div>
+        <ErrorNote message={save.error ? save.error.message : null} />
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={!valid || save.isPending}>
+            Save spec
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 function OrdersPanel({ sample }: { sample: SampleDetail }) {
   const { permissions } = useStudy();
   const queryClient = useQueryClient();
@@ -766,6 +867,7 @@ function OrdersPanel({ sample }: { sample: SampleDetail }) {
     queryFn: () => api<AnalysisService[]>("/analysis-services"),
   });
   const [serviceId, setServiceId] = useState("");
+  const [showSpec, setShowSpec] = useState(false);
 
   const order = useMutation({
     mutationFn: () =>
@@ -780,27 +882,39 @@ function OrdersPanel({ sample }: { sample: SampleDetail }) {
     },
   });
 
+  const canOrder = permissions.includes("order.create");
+  const canSpec = permissions.includes("spec.manage");
+
   return (
     <Card
       title="Tests & results"
       actions={
-        permissions.includes("order.create") ? (
+        canOrder || canSpec ? (
           <div className="flex items-center gap-2">
-            <select
-              className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm"
-              value={serviceId}
-              onChange={(e) => setServiceId(e.target.value)}
-            >
-              <option value="">Order a test…</option>
-              {(services.data ?? []).map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.code} — {s.name}
-                </option>
-              ))}
-            </select>
-            <Button onClick={() => order.mutate()} disabled={!serviceId || order.isPending}>
-              Order
-            </Button>
+            {canSpec && (
+              <Button variant="secondary" onClick={() => setShowSpec(true)}>
+                Specs…
+              </Button>
+            )}
+            {canOrder && (
+              <>
+                <select
+                  className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm"
+                  value={serviceId}
+                  onChange={(e) => setServiceId(e.target.value)}
+                >
+                  <option value="">Order a test…</option>
+                  {(services.data ?? []).map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.code} — {s.name}
+                    </option>
+                  ))}
+                </select>
+                <Button onClick={() => order.mutate()} disabled={!serviceId || order.isPending}>
+                  Order
+                </Button>
+              </>
+            )}
           </div>
         ) : undefined
       }
@@ -815,6 +929,7 @@ function OrdersPanel({ sample }: { sample: SampleDetail }) {
           ))}
         </div>
       )}
+      {showSpec && <SpecModal services={services.data ?? []} onClose={() => setShowSpec(false)} />}
     </Card>
   );
 }

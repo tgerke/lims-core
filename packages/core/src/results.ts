@@ -2,6 +2,7 @@ import { analysisRequests, results } from "@lims-core/db";
 import { desc, eq } from "drizzle-orm";
 import type { Tx } from "./actor.js";
 import { DomainError } from "./errors.js";
+import { activeSpec, evaluate } from "./specification.js";
 
 export async function currentResult(tx: Tx, requestId: string) {
   const [row] = await tx
@@ -45,6 +46,9 @@ export async function enterResult(tx: Tx, input: EnterResultInput) {
   if (current && !input.reasonForChange) {
     throw new DomainError("a correction requires a reason for change");
   }
+  // QC verdict against the service's active spec at entry time (ADR-0017).
+  const spec = await activeSpec(tx, request.serviceId);
+  const qcStatus = evaluate(spec, input.value);
   const [row] = await tx
     .insert(results)
     .values({
@@ -54,6 +58,7 @@ export async function enterResult(tx: Tx, input: EnterResultInput) {
       value: input.value,
       unit: input.unit ?? null,
       status: "entered",
+      qcStatus,
       reasonForChange: current ? (input.reasonForChange ?? null) : null,
       enteredBy: input.enteredBy,
     })
@@ -103,6 +108,7 @@ export async function verifyResult(tx: Tx, input: VerifyResultInput) {
       value: current.value,
       unit: current.unit,
       status: "verified",
+      qcStatus: current.qcStatus,
       reasonForChange: "verification",
       enteredBy: input.verifiedBy,
     })

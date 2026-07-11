@@ -12,7 +12,7 @@ repo, not to a paraphrase of the regulation.
 | ID | Requirement (plain language) | Enforced by | Proven by |
 | --- | --- | --- | --- |
 | P11-01 | Audit trail cannot be altered or fabricated | `audit_event` append-only trigger; runtime role's INSERT revoked; `SECURITY DEFINER` writer (`0001`, `0002`) | `db/compliance.test.ts` → "append-only enforcement", "audit forgery paths" |
-| P11-02 | Record changes append; prior values stay visible (§11.10(e)) | `result` versioned rows + append-only trigger; `reasonForChange` required on correction (`enterResult`) | `db/compliance.test.ts`; `routes/slice.test.ts` → "requires a reason for change" |
+| P11-02 | Record changes append; prior values stay visible (§11.10(e)) | `result` versioned rows + append-only trigger; `reasonForChange` required on correction (`enterResult`); `inventory_transaction` append-only reagent ledger (ADR-0016) | `db/compliance.test.ts`; `routes/slice.test.ts` → "requires a reason for change"; `routes/inventory.test.ts` → "keeps the transaction ledger append-only" |
 | P11-03 | Retroactive edits are detectable | Hash chain + `lims_verify_audit_chain()` (`0001`, ADR-0002) | `db/compliance.test.ts` → "detects a tampered event"; `slice.test.ts` → audit verify |
 | P11-04 | Access is authority-checked; admin ≠ clinical/lab authority | Grant-based RBAC scoped to study/site; `hasPermission`; system admins hold no lab permissions | `routes/slice.test.ts` → "blocks result entry without result.enter", audit-review denial |
 | P11-05 | Audit trail is reviewable | `/studies/:id/audit` filterable feed + facets | `routes/slice.test.ts` → "reviewable, verifying audit trail" |
@@ -36,11 +36,14 @@ repo, not to a paraphrase of the regulation.
 
 ## Deferred (states reserved, logic not built)
 
-Collection kits, the analytical module (specs/QC/CoA), and instrument
-integration are out of scope for this slice. The regulated tables reserve the
-enum values they will need so no future migration edits an append-only table
-(see ADR-0002 rationale). Aliquoting (CoC-04), shipment custody handoff (CoC-06),
-and consent-withdrawal holds (CoC-05) are now built; deeper lineage cases —
-pooling and derivation (e.g. blood → DNA) — reuse `sample_lineage` but remain
-roadmap. A hold does not yet block result entry on an in-progress order, and
+Instrument integration remains out of scope. Reagent/lot inventory (ADR-0016)
+and the first analytical slice — per-service acceptance criteria evaluated into
+a pass/out-of-spec QC verdict at result entry (ADR-0017) — are now built; the
+reagent consumption ledger is append-only under the same P11-02 guarantee
+(above). The rest of the analytical module (calculated results, worksheets, QC
+control samples with Westgard rules, Certificate of Analysis) is still roadmap.
+The QC verdict is a quality control, not a Part 11 requirement, so it carries no
+requirement ID. Aliquoting (CoC-04), shipment custody handoff (CoC-06),
+consent-withdrawal holds (CoC-05), pooling and derivation, and collection kits
+are built. A hold does not yet block result entry on an in-progress order, and
 there is no automated EDC-driven hold propagation (a coordinator places it).

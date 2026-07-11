@@ -118,8 +118,21 @@ export interface ResultVersion {
   value: string;
   unit: string | null;
   status: "entered" | "verified";
+  qcStatus: "pass" | "out_of_spec" | "not_evaluated";
   reasonForChange: string | null;
   enteredBy: string;
+  createdAt: string;
+}
+
+export interface Specification {
+  id: string;
+  serviceId: string;
+  unit: string | null;
+  lowerLimit: string | null;
+  upperLimit: string | null;
+  expectedValue: string | null;
+  active: boolean;
+  effectiveFrom: string;
   createdAt: string;
 }
 
@@ -240,6 +253,33 @@ export interface KitRow {
   deliveredAt: string | null;
   createdAt: string;
   items: KitItem[];
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  catalogNumber: string | null;
+  vendor: string | null;
+  category: "reagent" | "consumable" | "control" | "standard";
+  unit: string;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface InventoryLot {
+  id: string;
+  itemId: string;
+  itemName: string;
+  itemUnit: string;
+  category: "reagent" | "consumable" | "control" | "standard";
+  lotNumber: string;
+  expiryDate: string | null;
+  receivedDate: string;
+  quantityReceived: string;
+  quantityRemaining: string;
+  status: "available" | "quarantine" | "expired" | "depleted" | "discarded";
+  notes: string | null;
+  createdAt: string;
 }
 
 export interface AuditEvent {

@@ -3,6 +3,7 @@ import {
   char,
   index,
   integer,
+  numeric,
   pgTable,
   text,
   timestamp,
@@ -22,6 +23,30 @@ export const analysisServices = pgTable("analysis_service", {
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Acceptance criteria for a service (ADR-0017): a numeric range (lower/upper) or
+// a qualitative expected value. Superseded, never edited in place, so history
+// is retained. Lab-wide, like the service catalog.
+export const analysisSpecifications = pgTable(
+  "analysis_specification",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    serviceId: uuid("service_id")
+      .notNull()
+      .references(() => analysisServices.id),
+    unit: text("unit"),
+    lowerLimit: numeric("lower_limit"),
+    upperLimit: numeric("upper_limit"),
+    expectedValue: text("expected_value"),
+    active: boolean("active").notNull().default(true),
+    effectiveFrom: timestamp("effective_from", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("analysis_specification_service_lookup").on(t.serviceId)],
+);
 
 export const analysisRequests = pgTable(
   "analysis_request",
@@ -60,6 +85,7 @@ export const results = pgTable(
     value: text("value").notNull(),
     unit: text("unit"),
     status: text("status").notNull(),
+    qcStatus: text("qc_status").notNull().default("not_evaluated"),
     reasonForChange: text("reason_for_change"),
     enteredBy: uuid("entered_by")
       .notNull()

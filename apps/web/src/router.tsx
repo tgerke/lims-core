@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { AppLayout } from "./app.js";
 import { AuditTrailPage } from "./pages/audit.js";
+import { InventoryPage } from "./pages/inventory.js";
 import { KitsPage } from "./pages/kits.js";
 import { LoginPage } from "./pages/login.js";
 import { ReportsPage } from "./pages/reports.js";
@@ -74,6 +75,12 @@ const storageRoute = createRoute({
   component: StoragePage,
 });
 
+const inventoryRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/inventory",
+  component: InventoryPage,
+});
+
 const reportsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/reports",
@@ -96,6 +103,7 @@ const routeTree = rootRoute.addChildren([
     shipmentDetailRoute,
     kitsRoute,
     storageRoute,
+    inventoryRoute,
     reportsRoute,
     auditRoute,
   ]),

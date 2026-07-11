@@ -59,6 +59,8 @@ These are implemented, enforced, and covered by tests.
 | CSV manifest import | `core/manifest.ts`, `routes/samples.ts` | Heterogeneous per-row accession (subject/type/collection time) from a CSV, validated server-side, all-or-nothing with a per-row error report (ADR-0012). Column mapping and dry-run preview deferred. |
 | Consent-withdrawal holds + disposal | `core/hold.ts`, `routes/holds.ts` | Hold a sample or a whole subject, propagated to lineage descendants; blocks store/aliquot/ship; releasable to the prior status; terminal, supervisor-only disposal (CoC-05, ADR-0009). Result-entry block and EDC-driven propagation deferred. |
 | Reporting + CSV export | `core/reports.ts`, `routes/reports.ts` | Study-scoped inventory counts (status/type/site), collection→receipt and receipt→storage turnaround metrics, and a PHI-free sample-manifest CSV (ADR-0010). Assay turnaround, trend charts, and ad-hoc query deferred. |
+| Reagent/lot inventory | `core/inventory.ts`, `routes/inventory.ts` | Lab-wide reagent/consumable catalog, received lots with lot number/expiry/on-hand quantity, and an **append-only consumption ledger**; consumption blocks expired/quarantined/discarded lots and over-draws, depleting at zero (ADR-0016). Audited to the `global` chain; authorized on `inventory.manage` held in any study. Par-level reorder and lot→run linkage deferred. |
+| Analytical specs + QC verdict | `core/specification.ts`, `routes/specifications.ts` | Per-service acceptance criteria (numeric range or qualitative), versioned by supersession, evaluated automatically at result entry into a `pass`/`out_of_spec`/`not_evaluated` flag on the result (ADR-0017). Worksheets, QC control samples, Westgard rules, and CoA deferred. |
 | 2D barcode / label | `packages/labels` (bwip-js) | DataMatrix + human-readable accession ID, served as PNG. |
 | Freezer storage | `routes/storage.ts`, `core/storage.ts` | facility→freezer→shelf→rack→box hierarchy, position allocation, **one-occupant-per-position** constraint, temperature on units. |
 | Chain of custody | `custody_event` + triggers | Append-only events; collection/receipt/storage/transfer/aliquot/hold/disposal types (some reserved). |
@@ -77,10 +79,11 @@ The data model or enum values exist so a future build won't have to migrate an
 append-only table, but there is no logic or UI. A buyer should read these as
 "architected for, months out," not "available."
 
-- **Analytical module.** Test specifications/acceptance criteria, calculated
-  results, worksheets, QC samples (blanks/spikes/duplicates/controls), and
-  Certificate of Analysis generation are designed in `plan.md` but absent from
-  the schema.
+- **Analytical module (remainder).** Per-service acceptance criteria with
+  in-spec/out-of-spec evaluation at result entry are now built (Tier 1,
+  ADR-0017). Still absent: calculated results, worksheets, QC control samples
+  (blanks/spikes/duplicates/controls), Westgard-style rules, and Certificate of
+  Analysis generation.
 
 ## Tier 3 — Not started (expected in a CRO/pharma LIMS)
 
@@ -97,10 +100,13 @@ None of the following exist in the repository yet. This is the real distance to
   freezer map with click-to-place/move, and CSV/manifest import are now built —
   Tier 1)
 - Sample request, reservation, and distribution workflows
-- Reagent/consumable **inventory and lot/expiry** tracking
+- Reagent/consumable inventory and lot/expiry tracking (catalog, lots with
+  expiry, and an append-only consumption ledger are now built — Tier 1, ADR-0016)
 
 **Analytical / QC (the commercial-LIMS parity surface)**
 - Configurable test catalog with specs, units, ranges, and calculations
+  (per-service acceptance criteria with pass/out-of-spec evaluation at result
+  entry are now built — Tier 1, ADR-0017; calculations still open)
 - Worksheets, instrument runs, QC rules and Westgard-style evaluation
 - Certificate of Analysis (PDF) generation
 - Stability studies and environmental monitoring
@@ -171,7 +177,11 @@ usable pilot — in rough priority order:
    inventory counts, collection→receipt / receipt→storage turnaround metrics,
    and a PHI-free sample-manifest CSV. Assay turnaround, dashboards, and ad-hoc
    query still open.
-6. **Reagent/lot inventory.** Needed once real assays run.
+6. ~~**Reagent/lot inventory.**~~ **Done** (Tier 1, ADR-0016): a lab-wide
+   catalog, received lots with expiry and on-hand quantity, and an append-only
+   consumption ledger that blocks expired/over-draw use. Par-level reorder and
+   linking a consumed lot to the assay run that used it still open — the latter
+   is the seam to the analytical module (ADR-0017).
 
 Each should land with the same discipline the slice already shows: a schema
 change plus an ADR, requirement IDs threaded into column comments, and a

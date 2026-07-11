@@ -105,6 +105,7 @@ export const orderRoutes: FastifyPluginAsync = async (app) => {
             value: results.value,
             unit: results.unit,
             status: results.status,
+            qcStatus: results.qcStatus,
             reasonForChange: results.reasonForChange,
             enteredBy: users.username,
             createdAt: results.createdAt,
