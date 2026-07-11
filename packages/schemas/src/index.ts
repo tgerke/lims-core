@@ -66,6 +66,14 @@ export const storeRequestSchema = z.object({
 });
 export type StoreRequest = z.infer<typeof storeRequestSchema>;
 
+// Interactive freezer-map placement (ADR-0015): position is required — a map
+// click always targets a specific cell.
+export const moveRequestSchema = z.object({
+  storageUnitId: z.uuid(),
+  position: z.string().regex(/^[A-Z]\d{1,2}$/, "positions look like A1..H12"),
+});
+export type MoveRequest = z.infer<typeof moveRequestSchema>;
+
 export const aliquotRequestSchema = z.object({
   count: z.number().int().min(1).max(96),
   // Per-child amount; required by the server when the parent tracks quantity.
