@@ -12,6 +12,15 @@ e-signatures, plus specimen chain of custody, enforced in PostgreSQL via
 triggers and a least-privilege application role — never trusted to application
 code.
 
+**Documentation & guided walkthrough:** <https://tgerke.github.io/lims-core/>
+
+![A sample record: storage, chain of custody, DataMatrix label, and a versioned, verified, e-signed result](docs/screenshots/04-sample-detail.png)
+
+> **Status:** first end-to-end milestone. A strong foundation and working demo —
+> not yet a production biobank system, and not a drop-in LabVantage replacement.
+> See the [completeness review](docs/completeness-review.md) for an honest gap
+> analysis.
+
 ## The vertical slice (what works today)
 
 Accession a specimen → print a DataMatrix label → store it in a freezer
@@ -59,6 +68,14 @@ Direct `UPDATE`/`DELETE` on `audit_event` / `result` / `custody_event` /
 tampered event fails `lims_verify_audit_chain()`; e-signing rejects a wrong
 password. Each test cites its requirement ID —
 see [`docs/regulatory-traceability.md`](docs/regulatory-traceability.md).
+
+## Documentation
+
+- [User guide & walkthrough](https://tgerke.github.io/lims-core/) (GitHub Pages)
+- [Completeness review](docs/completeness-review.md) — vs. a CRO/pharma LIMS and LabVantage
+- [Build plan & architecture](docs/plan.md)
+- [Regulatory traceability matrix](docs/regulatory-traceability.md)
+- [Architecture decision records](docs/adr/)
 
 ## License
 
