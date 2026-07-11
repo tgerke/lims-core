@@ -6,7 +6,7 @@ sign→audit workflow).
 
 This is an honest gap analysis, not a sales sheet. It answers two questions a
 Contract Research Organization or pharma sponsor actually asks: *"Could this run
-our trial biobank?"* and *"Is this a drop-in for our LabVantage/LabWare/STARLIMS
+our trial biobank?"* and *"Is this a drop-in for our existing commercial LIMS
 install?"* The short answers are **"the core is real and unusually well-built,
 but the functional surface is a fraction of what you need in production"** and
 **"no, not today."** The rest of this document is the detail behind those
@@ -38,9 +38,9 @@ size that gap concretely so it can be planned against, not to imply it is
 hidden.
 
 **Readiness verdict:** a credible foundation and a compelling demo; **not yet a
-system you could run a regulated trial biobank on**, and **not a LabVantage
-replacement**. The distance to the first is a focused roadmap (Tier 1 below);
-the distance to the second is a multi-year platform effort.
+system you could run a regulated trial biobank on**, and **not a replacement for
+an established commercial LIMS**. The distance to the first is a focused roadmap
+(Tier 1 below); the distance to the second is a multi-year platform effort.
 
 ---
 
@@ -93,7 +93,7 @@ None of the following exist in the repository yet. This is the real distance to
 - Sample request, reservation, and distribution workflows
 - Reagent/consumable **inventory and lot/expiry** tracking
 
-**Analytical / QC (the LabVantage parity surface)**
+**Analytical / QC (the commercial-LIMS parity surface)**
 - Configurable test catalog with specs, units, ranges, and calculations
 - Worksheets, instrument runs, QC rules and Westgard-style evaluation
 - Certificate of Analysis (PDF) generation
@@ -117,22 +117,23 @@ None of the following exist in the repository yet. This is the real distance to
 
 ---
 
-## On "drop-in replacement for LabVantage"
+## On "drop-in replacement for a commercial LIMS"
 
-Set expectations honestly. LabVantage is a large, configurable platform —
-biobanking, stability, ELN, SDMS, dashboards, a no-code workflow designer, and
-broad instrument integration. lims-core implements a single, narrow workflow.
-The functional breadth gap is measured in years of work, and any migration also
-carries data migration, revalidation, and change-control cost that dwarfs the
-software.
+Set expectations honestly. The established commercial LIMS platforms are large
+and configurable — biobanking, stability, ELN, SDMS, dashboards, a no-code
+workflow designer, and broad instrument integration. lims-core implements a
+single, narrow workflow. The functional breadth gap is measured in years of
+work, and any migration also carries data migration, revalidation, and
+change-control cost that dwarfs the software.
 
 Where lims-core is *ahead* is worth stating too, because it is the reason to
 invest: the compliance substrate (tamper-evident hash-chained audit, DB-enforced
 immutability, least-privilege runtime role, re-auth e-signatures, per-study audit
 scoping) is modern and cleanly separated, and the stack (TypeScript, Postgres,
-React) is a far easier hiring and maintenance story than legacy Java/Oracle
-LIMS. The honest pitch is **"an open, modern nucleus you can grow into a
-LabVantage alternative,"** not "a replacement you can install next quarter."
+React) is a far easier hiring and maintenance story than a legacy Java/Oracle
+LIMS. The honest pitch is **"an open, modern nucleus you can grow into an
+alternative to those platforms,"** not "a replacement you can install next
+quarter."
 
 ---
 

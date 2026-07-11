@@ -17,7 +17,7 @@
 > reviewing before implementation.
 >
 > **Decisions locked with the user:** (1) primary domain = biobank-for-trials, but build a
-> domain-neutral core so it can also replace LabVantage-style analytical LIMS later;
+> domain-neutral core so it can also serve analytical labs later;
 > (2) adopt `edc-core`'s toolchain as the platform standard + fold in `ctms-core`'s
 > compliance machinery (converge all three repos); (3) first deliverable = thin vertical
 > slice; (4) 21 CFR Part 11 + chain of custody structural from day one.
@@ -34,11 +34,11 @@
 
 ## Context
 
-`lims-core` is a new, greenfield, AGPL-3.0 open-source Laboratory Information Management System — the third sibling to `edc-core` (Electronic Data Capture) and `ctms-core` (Clinical Trial Management), living under `~/Documents/gh-repos/`. The goal is the same as the other two: a modern, open replacement for expensive licensed software (LabVantage, LabWare, STARLIMS, SENAITE) that today ships outmoded tech stacks and dated UX.
+`lims-core` is a new, greenfield, AGPL-3.0 open-source Laboratory Information Management System — the third sibling to `edc-core` (Electronic Data Capture) and `ctms-core` (Clinical Trial Management), living under `~/Documents/gh-repos/`. The goal is the same as the other two: a modern, open alternative to the expensive licensed LIMS platforms that today ship outmoded tech stacks and dated UX.
 
 Two decisions from the user shape this plan:
 
-1. **Domain:** biospecimen/biobank management for clinical trials is the primary need, but the system should be built so its shared core can *also* replace LabVantage-style analytical LIMS for academic labs. This is feasible because both share ~70% of the model. We build a domain-neutral sample/test/result/storage/workflow core, ship the **biobank vertical slice first**, and design the test-catalog/spec/CoA layer so analytical parity is a follow-on module, not a rewrite.
+1. **Domain:** biospecimen/biobank management for clinical trials is the primary need, but the system should be built so its shared core can *also* serve analytical LIMS use for academic labs. This is feasible because both share ~70% of the model. We build a domain-neutral sample/test/result/storage/workflow core, ship the **biobank vertical slice first**, and design the test-catalog/spec/CoA layer so analytical parity is a follow-on module, not a rewrite.
 2. **Convergence:** the three repos should merge into one interoperable platform. `edc-core` is the newest, most complete sibling; its toolchain becomes the **canonical convergent stack**. `ctms-core`'s stronger compliance machinery is folded in. `ctms-core` currently lags (Hono, Zod 3, React 18, no lint/CI) and should migrate toward this target over time. This plan does *not* refactor the siblings — it establishes the shared conventions in `lims-core` and documents them so the others can follow.
 
 **Compliance is structural from day one:** 21 CFR Part 11 (append-only audit, e-signatures) + specimen chain of custody, enforced in Postgres via triggers and a least-privilege app role — never trusted to application code. This matches the siblings' compliance-by-construction thesis.
@@ -111,7 +111,7 @@ These are the interop seams the three tools must agree on. Define them in `lims-
 
 - **`sample`** — the managed unit (biobank: specimen; analytical: sample). Type, matrix, collection metadata, status (workflow state), source reference. UUID PK, `timestamptz`, OID-addressable.
 - **`sample_lineage`** — parent→child derivations (aliquoting, pooling, extraction e.g. blood→DNA). Biobank-critical; also models analytical sub-sampling. Self-referential.
-- **`analysis_service`** — a test/analysis definition (SENAITE model). `analysis_profile` bundles services; `method` and `specification` (acceptance criteria) attach to services.
+- **`analysis_service`** — a test/analysis definition: a catalog of named tests, each with a code, method, and specification (acceptance criteria). `analysis_profile` bundles services; `method` and `specification` attach to services.
 - **`analysis_request`** (order) — a request for tests on a sample; the submission unit. Links sample → services.
 - **`result`** — measured value for one analysis on one sample; QC flags; **append-only versioned rows** with `reasonForChange` (edc pattern); verified/signed states.
 - **`worksheet`** — batches analyses for an instrument run (deferred detail; stub in slice).
