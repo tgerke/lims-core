@@ -151,10 +151,73 @@ export const createKitSchema = z.object({
 });
 export type CreateKitRequest = z.infer<typeof createKitSchema>;
 
+// Reagent/consumable inventory (ADR-0016). Lab-wide, not study-scoped.
+export const INVENTORY_CATEGORIES = ["reagent", "consumable", "control", "standard"] as const;
+export const inventoryCategorySchema = z.enum(INVENTORY_CATEGORIES);
+export type InventoryCategory = z.infer<typeof inventoryCategorySchema>;
+
+export const createItemSchema = z.object({
+  name: z.string().min(1).max(200),
+  catalogNumber: z.string().min(1).max(100).optional(),
+  vendor: z.string().min(1).max(200).optional(),
+  category: inventoryCategorySchema.optional(),
+  unit: z.string().min(1).max(20),
+});
+export type CreateItemRequest = z.infer<typeof createItemSchema>;
+
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "dates look like YYYY-MM-DD");
+
+export const receiveLotSchema = z.object({
+  itemId: z.uuid(),
+  lotNumber: z.string().min(1).max(100),
+  quantity: z.number().positive(),
+  expiryDate: isoDate.optional(),
+  receivedDate: isoDate.optional(),
+  storageUnitId: z.uuid().optional(),
+  notes: z.string().min(1).max(1000).optional(),
+});
+export type ReceiveLotRequest = z.infer<typeof receiveLotSchema>;
+
+export const consumeLotSchema = z.object({
+  quantity: z.number().positive(),
+  note: z.string().min(1).max(1000).optional(),
+});
+export type ConsumeLotRequest = z.infer<typeof consumeLotSchema>;
+
+export const adjustLotSchema = z.object({
+  delta: z.number().refine((n) => n !== 0, "adjustment delta must be non-zero"),
+  note: z.string().min(1).max(1000).optional(),
+});
+export type AdjustLotRequest = z.infer<typeof adjustLotSchema>;
+
+export const discardLotSchema = z.object({
+  note: z.string().min(1).max(1000).optional(),
+});
+export type DiscardLotRequest = z.infer<typeof discardLotSchema>;
+
 export const orderRequestSchema = z.object({
   serviceId: z.uuid(),
 });
 export type OrderRequest = z.infer<typeof orderRequestSchema>;
+
+// Analytical acceptance criteria (ADR-0017): a numeric range (a bound on either
+// side) or a qualitative expected value, never both.
+export const createSpecificationSchema = z
+  .object({
+    unit: z.string().min(1).max(20).optional(),
+    lowerLimit: z.number().optional(),
+    upperLimit: z.number().optional(),
+    expectedValue: z.string().min(1).max(200).optional(),
+  })
+  .refine(
+    (d) => {
+      const hasRange = d.lowerLimit !== undefined || d.upperLimit !== undefined;
+      const hasExpected = d.expectedValue !== undefined;
+      return hasRange !== hasExpected;
+    },
+    { message: "provide either numeric limits or an expected value, not both" },
+  );
+export type CreateSpecificationRequest = z.infer<typeof createSpecificationSchema>;
 
 export const resultEntrySchema = z.object({
   value: z.string().min(1),

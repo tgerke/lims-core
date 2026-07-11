@@ -15,7 +15,7 @@ import {
   provisionOidcUser,
   safeReturnTo,
 } from "./oidc.js";
-import { hasPermission, type PermissionScope } from "./rbac.js";
+import { hasPermission, hasPermissionAnywhere, type PermissionScope } from "./rbac.js";
 import { type AuthenticatedUser, AuthService } from "./service.js";
 
 declare module "fastify" {
@@ -241,6 +241,24 @@ export function requirePermission(
       permission,
       resolveScope(request),
     );
+    if (!allowed) {
+      await reply.code(403).send({ error: `missing permission: ${permission}` });
+    }
+  };
+}
+
+/**
+ * Route guard for lab-wide resources with no study scope (reagent inventory,
+ * ADR-0016): 403 unless the permission is held in some study the user belongs
+ * to. Do not use for study-scoped records — use requirePermission there.
+ */
+export function requirePermissionAnywhere(permission: Permission) {
+  return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+    if (!request.user) {
+      await reply.code(401).send({ error: "authentication required" });
+      return;
+    }
+    const allowed = await hasPermissionAnywhere(request.server.db, request.user.id, permission);
     if (!allowed) {
       await reply.code(403).send({ error: `missing permission: ${permission}` });
     }

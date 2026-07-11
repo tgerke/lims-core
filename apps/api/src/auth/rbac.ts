@@ -71,6 +71,33 @@ export async function effectivePermissions(
   return rows.map((r) => r.permission as Permission).sort();
 }
 
+/**
+ * Whether the user holds a permission in ANY study they are a member of.
+ * Lab-wide resources (reagent inventory, ADR-0016) have no study to scope a
+ * grant to; authority is "you hold this somewhere." A knowingly-interim
+ * resolution until a true org-scoped grant exists — never used for
+ * study-scoped, per-record authorization, which stays on hasPermission.
+ */
+export async function hasPermissionAnywhere(
+  db: Db,
+  userId: string,
+  permission: Permission,
+): Promise<boolean> {
+  const rows = await db
+    .select({ roleId: userStudyRoles.roleId })
+    .from(userStudyRoles)
+    .innerJoin(rolePermissions, eq(rolePermissions.roleId, userStudyRoles.roleId))
+    .where(
+      and(
+        eq(userStudyRoles.userId, userId),
+        isNull(userStudyRoles.revokedAt),
+        eq(rolePermissions.permission, permission),
+      ),
+    )
+    .limit(1);
+  return rows.length > 0;
+}
+
 /** Membership = any unrevoked role grant in the study (read visibility). */
 export async function isStudyMember(db: Db, userId: string, studyId: string): Promise<boolean> {
   const rows = await db

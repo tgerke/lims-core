@@ -35,6 +35,13 @@ const STATUS_STYLES: Record<string, string> = {
   signed: "bg-emerald-100 text-emerald-800",
   cancelled: "bg-rose-100 text-rose-800",
   entered: "bg-amber-100 text-amber-800",
+  available: "bg-emerald-100 text-emerald-800",
+  quarantine: "bg-amber-100 text-amber-800",
+  expired: "bg-rose-100 text-rose-800",
+  discarded: "bg-rose-100 text-rose-800",
+  pass: "bg-emerald-100 text-emerald-800",
+  out_of_spec: "bg-rose-100 text-rose-800",
+  not_evaluated: "bg-slate-100 text-slate-500",
 };
 
 export function StatusBadge({ status }: { status: string }) {
