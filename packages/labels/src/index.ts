@@ -2,7 +2,7 @@
 // renderer lives in ./datamatrix so the web bundle never pulls in bwip-js
 // (ADR-0004) unless it renders labels itself.
 
-/** `PCCTC-001-00042`: sanitized study OID + zero-padded per-study number. */
+/** `STUDY-001-00042`: sanitized study OID + zero-padded per-study number. */
 export function formatAccessionId(studyOid: string, sequence: number): string {
   const prefix = studyOid
     .toUpperCase()

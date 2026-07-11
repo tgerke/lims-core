@@ -138,7 +138,7 @@ LabVantage alternative,"** not "a replacement you can install next quarter."
 
 ## Recommended next steps for the trial-biobank use case (Tier 1 → pilot)
 
-If the goal is to run PCCTC's biospecimen management, the shortest path to a
+If the goal is to run a sponsor's or CRO's biospecimen management, the shortest path to a
 usable pilot — in rough priority order:
 
 1. **Aliquot workflow + volume/quantity fields.** Without volumes and aliquot

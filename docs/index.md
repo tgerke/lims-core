@@ -166,7 +166,8 @@ that cites its requirement ID. Full mapping in the
   [convergent stack](adr/0001-convergent-stack.md) ·
   [per-study audit chain](adr/0002-per-study-audit-chain.md) ·
   [password step-up e-sign](adr/0003-password-step-up-esign.md) ·
-  [labels library](adr/0004-labels-library.md)
+  [labels library](adr/0004-labels-library.md) ·
+  [positioning & versioning](adr/0005-positioning-and-versioning.md)
 - [Source on GitHub](https://github.com/tgerke/lims-core)
 
 lims-core is the third sibling to `edc-core` (Electronic Data Capture) and

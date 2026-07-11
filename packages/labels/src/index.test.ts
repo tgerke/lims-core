@@ -3,7 +3,7 @@ import { formatAccessionId, isAccessionId } from "./index.js";
 
 describe("formatAccessionId", () => {
   it("builds a sanitized, zero-padded id", () => {
-    expect(formatAccessionId("PCCTC-001", 42)).toBe("PCCTC-001-00042");
+    expect(formatAccessionId("STUDY-001", 42)).toBe("STUDY-001-00042");
     expect(formatAccessionId("s.0001/x", 1)).toBe("S-0001-X-00001");
   });
 

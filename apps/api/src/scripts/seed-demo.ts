@@ -20,7 +20,7 @@ import { hashPassword } from "../auth/password.js";
 
 const ADMIN_PASSWORD = process.env.LIMS_ADMIN_PASSWORD ?? "lims-admin-2026!";
 const DEMO_PASSWORD = process.env.LIMS_DEMO_PASSWORD ?? "lims-demo-2026!";
-const STUDY_OID = "PCCTC-DEMO";
+const STUDY_OID = "DEMO-001";
 
 async function main() {
   await runMigrations();
@@ -74,12 +74,12 @@ async function main() {
 
       const [study] = await tx
         .insert(studies)
-        .values({ oid: STUDY_OID, name: "PCCTC Demo Biobank Study" })
+        .values({ oid: STUDY_OID, name: "Demo Biobank Study" })
         .returning();
       if (!study) throw new Error("study insert failed");
       const [site] = await tx
         .insert(sites)
-        .values({ studyId: study.id, oid: "MSK-01", name: "Memorial Sloan Kettering" })
+        .values({ studyId: study.id, oid: "SITE-01", name: "Central Clinical Site" })
         .returning();
       if (!site) throw new Error("site insert failed");
 
@@ -153,7 +153,7 @@ async function main() {
       ]);
     });
 
-    console.log(`seed: created study ${STUDY_OID} with site MSK-01`);
+    console.log(`seed: created study ${STUDY_OID} with site SITE-01`);
     console.log(`seed: users admin/${ADMIN_PASSWORD} (system admin + lab_admin),`);
     console.log(`      mgarcia/${DEMO_PASSWORD} (lab_manager),`);
     console.log(`      tchen/${DEMO_PASSWORD} (technician), rpatel/${DEMO_PASSWORD} (accessioner)`);
