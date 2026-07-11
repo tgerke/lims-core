@@ -52,6 +52,7 @@ These are implemented, enforced, and covered by tests.
 | --- | --- | --- |
 | Specimen accession | `routes/samples.ts`, `core/accession.ts` | Study/site scoping, specimen typing, EDC subject/visit **reference only** (no PHI), per-study accession IDs. |
 | Aliquot workflow + volume | `core/aliquot.ts`, `routes/samples.ts` | Parent→child aliquots with parent-suffixed IDs, `sample_lineage`, `aliquot` custody events; optional per-sample quantity, conserved and deducted on aliquoting, parent depleted at zero (CoC-04, ADR-0006). |
+| Shipments with custody handoff | `core/shipment.ts`, `routes/shipments.ts` | Pack → ship → receive a batch site→central; per-phase `transfer` custody events, in-transit state, send/receive separation of duties (CoC-06, ADR-0007). Collection kits not yet built. |
 | 2D barcode / label | `packages/labels` (bwip-js) | DataMatrix + human-readable accession ID, served as PNG. |
 | Freezer storage | `routes/storage.ts`, `core/storage.ts` | facility→freezer→shelf→rack→box hierarchy, position allocation, **one-occupant-per-position** constraint, temperature on units. |
 | Chain of custody | `custody_event` + triggers | Append-only events; collection/receipt/storage/transfer/aliquot/hold/disposal types (some reserved). |
@@ -91,7 +92,8 @@ None of the following exist in the repository yet. This is the real distance to
 **Biobank depth**
 - Freeze-thaw cycle counts, concentration tracking, and derivation/pooling trees
   (aliquot volume/quantity itself is now built — Tier 1)
-- Kits and inbound/outbound shipments with custody handoff
+- Collection kits sent to sites (sample-bearing shipments with custody handoff
+  are now built — Tier 1)
 - Bulk / batch accessioning and plate/rack (grid) operations
 - Freezer-map visualization and capacity dashboards
 - Sample request, reservation, and distribution workflows
@@ -149,8 +151,9 @@ usable pilot — in rough priority order:
 1. ~~**Aliquot workflow + volume/quantity fields.**~~ **Done** (Tier 1, CoC-04,
    ADR-0006): parent→child aliquots with conserved volume. Follow-ons still open:
    freeze-thaw counts, concentration, and derivation/pooling trees.
-2. **Kits & shipments with custody handoff.** Trials collect at sites and ship
-   to a central lab; this is table stakes.
+2. ~~**Kits & shipments with custody handoff.**~~ **Shipments done** (Tier 1,
+   CoC-06, ADR-0007): pack → ship → receive site→central with an unbroken
+   custody trail. Collection kits (outbound empty containers) still open.
 3. **Bulk accessioning + freezer-map UI.** Throughput and usability.
 4. **Consent-withdrawal holds (CoC-05).** Finish the reserved control; it is a
    real regulatory obligation, not a nice-to-have.

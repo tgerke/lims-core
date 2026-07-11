@@ -32,12 +32,13 @@ repo, not to a paraphrase of the regulation.
 | CoC-03 | Location changes are recorded; one occupant per position | `storeSample` + `storage_add` event; partial unique index on `(storage_unit_id, storage_position)` | `routes/slice.test.ts` → "stores… with a custody event", "rejects a double-booked position" |
 | CoC-04 | Aliquoting preserves an auditable parent→child lineage and conserves quantity | `aliquotSample`: `sample_lineage` rows + `aliquot` custody events on parent and children; volume deducted and conserved (ADR-0006); quantity changes captured by the `sample` audit trigger | `routes/aliquot.test.ts` → "conserving quantity and lineage", over-draw/depletion cases |
 | CoC-05 | Consent-withdrawal hold/disposal (deferred) | `sample.status` and `custody_event.event_type` reserve `hold`/`hold_release`/`disposal` now; logic deferred | states present in `0000_init.sql`; enforcement is roadmap |
+| CoC-06 | A sample in transit keeps an unbroken custody record from origin to destination | `shipShipment`/`receiveShipment` record a `transfer` custody event per phase; `send`/`receive` split by RBAC (ADR-0007) | `routes/shipment.test.ts` → "moving custody unbroken", separation-of-duties and transition-guard cases |
 
 ## Deferred (states reserved, logic not built)
 
-CoC-05 consent-withdrawal holds, kits/shipments, the analytical module
+CoC-05 consent-withdrawal holds, collection kits, the analytical module
 (specs/QC/CoA), and instrument integration are out of scope for this slice. The
 regulated tables reserve the enum values they will need so no future migration
-edits an append-only table (see ADR-0002 rationale). Aliquoting (CoC-04) is now
-built; deeper lineage cases — pooling and derivation (e.g. blood → DNA) — reuse
-`sample_lineage` but remain roadmap.
+edits an append-only table (see ADR-0002 rationale). Aliquoting (CoC-04) and
+shipment custody handoff (CoC-06) are now built; deeper lineage cases — pooling
+and derivation (e.g. blood → DNA) — reuse `sample_lineage` but remain roadmap.

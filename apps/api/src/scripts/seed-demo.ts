@@ -1,4 +1,4 @@
-import { accessionSample, withActor } from "@lims-core/core";
+import { accessionSample, createShipment, withActor } from "@lims-core/core";
 import {
   analysisServices,
   createDb,
@@ -167,6 +167,31 @@ async function main() {
         .update(samples)
         .set({ quantity: "10", quantityUnit: "mL", initialQuantity: "10" })
         .where(eq(samples.id, demoSample.id));
+
+      // Two serum specimens packed into a shipment to the central lab (CoC-06).
+      const packed = [];
+      for (let i = 0; i < 2; i++) {
+        packed.push(
+          await accessionSample(tx, {
+            studyId: study.id,
+            studyOid: study.oid,
+            siteId: site.id,
+            sampleType: "serum",
+            subjectKey: "SUBJ-002",
+            collectedAt: new Date(),
+            actorId: byUsername("tchen"),
+          }),
+        );
+      }
+      await createShipment(tx, {
+        studyId: study.id,
+        studyOid: study.oid,
+        destination: "Central Biorepository",
+        originSiteId: site.id,
+        carrier: "World Courier",
+        sampleIds: packed.map((s) => s.id),
+        actorId: byUsername("tchen"),
+      });
     });
 
     console.log(`seed: created study ${STUDY_OID} with site SITE-01`);

@@ -4,6 +4,8 @@ export const PERMISSIONS = [
   "sample.accession",
   "sample.store",
   "sample.aliquot",
+  "shipment.send",
+  "shipment.receive",
   "order.create",
   "result.enter",
   "result.verify",

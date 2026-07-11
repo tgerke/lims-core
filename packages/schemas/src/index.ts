@@ -55,6 +55,15 @@ export const aliquotRequestSchema = z.object({
 });
 export type AliquotRequest = z.infer<typeof aliquotRequestSchema>;
 
+export const createShipmentSchema = z.object({
+  destination: z.string().min(1).max(200),
+  originSiteId: z.uuid().optional(),
+  carrier: z.string().min(1).max(100).optional(),
+  trackingNumber: z.string().min(1).max(100).optional(),
+  sampleIds: z.array(z.uuid()).min(1).max(500),
+});
+export type CreateShipmentRequest = z.infer<typeof createShipmentSchema>;
+
 export const orderRequestSchema = z.object({
   serviceId: z.uuid(),
 });

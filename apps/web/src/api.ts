@@ -148,6 +148,42 @@ export interface AnalysisService {
   unit: string | null;
 }
 
+export interface ShipmentRow {
+  id: string;
+  shipmentNumber: string;
+  status: "packed" | "in_transit" | "received" | "cancelled";
+  destination: string;
+  originSite: string | null;
+  carrier: string | null;
+  trackingNumber: string | null;
+  shippedAt: string | null;
+  receivedAt: string | null;
+  createdAt: string;
+  itemCount: number;
+}
+
+export interface ShipmentItem {
+  id: string;
+  accessionId: string;
+  sampleType: string;
+  status: string;
+}
+
+export interface ShipmentDetail {
+  id: string;
+  shipmentNumber: string;
+  status: "packed" | "in_transit" | "received" | "cancelled";
+  destination: string;
+  carrier: string | null;
+  trackingNumber: string | null;
+  shippedAt: string | null;
+  receivedAt: string | null;
+  createdAt: string;
+  originSite: Site | null;
+  createdBy: string | null;
+  items: ShipmentItem[];
+}
+
 export interface AuditEvent {
   id: string;
   occurredAt: string;

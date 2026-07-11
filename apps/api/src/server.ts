@@ -7,6 +7,7 @@ import { auditRoutes } from "./routes/audit.js";
 import { orderRoutes } from "./routes/orders.js";
 import { resultRoutes } from "./routes/results.js";
 import { sampleRoutes } from "./routes/samples.js";
+import { shipmentRoutes } from "./routes/shipments.js";
 import { storageRoutes } from "./routes/storage.js";
 import { studyRoutes } from "./routes/studies.js";
 
@@ -37,6 +38,7 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
   });
   await server.register(studyRoutes);
   await server.register(sampleRoutes);
+  await server.register(shipmentRoutes);
   await server.register(storageRoutes);
   await server.register(orderRoutes);
   await server.register(resultRoutes);

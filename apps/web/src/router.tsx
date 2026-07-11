@@ -10,6 +10,8 @@ import { AuditTrailPage } from "./pages/audit.js";
 import { LoginPage } from "./pages/login.js";
 import { SampleDetailPage } from "./pages/sample-detail.js";
 import { SamplesPage } from "./pages/samples.js";
+import { ShipmentDetailPage } from "./pages/shipment-detail.js";
+import { ShipmentsPage } from "./pages/shipments.js";
 
 const rootRoute = createRootRoute({ component: Outlet });
 
@@ -45,6 +47,18 @@ const sampleDetailRoute = createRoute({
   component: SampleDetailPage,
 });
 
+const shipmentsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/shipments",
+  component: ShipmentsPage,
+});
+
+const shipmentDetailRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/shipments/$shipmentId",
+  component: ShipmentDetailPage,
+});
+
 const auditRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/audit",
@@ -53,7 +67,14 @@ const auditRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  appRoute.addChildren([indexRoute, samplesRoute, sampleDetailRoute, auditRoute]),
+  appRoute.addChildren([
+    indexRoute,
+    samplesRoute,
+    sampleDetailRoute,
+    shipmentsRoute,
+    shipmentDetailRoute,
+    auditRoute,
+  ]),
 ]);
 
 export const router = createRouter({ routeTree });
