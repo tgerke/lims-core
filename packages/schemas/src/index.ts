@@ -51,6 +51,12 @@ export const bulkAccessionSchema = z.object({
 });
 export type BulkAccessionRequest = z.infer<typeof bulkAccessionSchema>;
 
+// Bulk import: a raw manifest CSV, parsed and validated server-side.
+export const importManifestSchema = z.object({
+  csv: z.string().min(1).max(2_000_000),
+});
+export type ImportManifestRequest = z.infer<typeof importManifestSchema>;
+
 export const storeRequestSchema = z.object({
   storageUnitId: z.uuid(),
   position: z

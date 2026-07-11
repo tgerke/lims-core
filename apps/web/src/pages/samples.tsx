@@ -243,10 +243,95 @@ function BulkAccessionModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+function ImportModal({ onClose }: { onClose: () => void }) {
+  const { study } = useStudy();
+  const queryClient = useQueryClient();
+  const [file, setFile] = useState<File | null>(null);
+  const [rowErrors, setRowErrors] = useState<{ row: number; message: string }[]>([]);
+
+  const runImport = useMutation({
+    mutationFn: async () => {
+      if (!file) throw new Error("choose a CSV file");
+      const csv = await file.text();
+      const res = await fetch(`/api/studies/${study.id}/samples/import`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ csv }),
+      });
+      const body = (await res.json()) as {
+        error?: string;
+        errors?: { row: number; message: string }[];
+        count?: number;
+      };
+      if (!res.ok) {
+        setRowErrors(body.errors ?? []);
+        throw new Error(body.error ?? "import failed");
+      }
+      return body;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["samples", study.id] });
+      onClose();
+    },
+  });
+
+  return (
+    <Modal title="Import a sample manifest" onClose={onClose}>
+      <form
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault();
+          setRowErrors([]);
+          if (file) runImport.mutate();
+        }}
+        className="space-y-4"
+      >
+        <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
+          CSV columns: <span className="font-mono">site_oid</span>,{" "}
+          <span className="font-mono">sample_type</span> (required);{" "}
+          <span className="font-mono">subject_key</span>,{" "}
+          <span className="font-mono">study_event_oid</span>,{" "}
+          <span className="font-mono">collected_at</span> (optional). One bad row rejects the whole
+          file.
+        </p>
+        <Field label="Manifest file">
+          <input
+            type="file"
+            accept=".csv,text/csv"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-indigo-700"
+          />
+        </Field>
+        <ErrorNote message={runImport.error ? runImport.error.message : null} />
+        {rowErrors.length > 0 && (
+          <div className="max-h-40 overflow-y-auto rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+            <ul className="space-y-1">
+              {rowErrors.map((e) => (
+                <li key={`${e.row}-${e.message}`}>
+                  <span className="font-mono">row {e.row}</span>: {e.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={!file || runImport.isPending}>
+            Import
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 export function SamplesPage() {
   const { study, permissions } = useStudy();
   const [showAccession, setShowAccession] = useState(false);
   const [showBulk, setShowBulk] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const samples = useQuery({
     queryKey: ["samples", study.id],
     queryFn: () => api<SampleRow[]>(`/studies/${study.id}/samples`),
@@ -263,6 +348,9 @@ export function SamplesPage() {
         </div>
         {permissions.includes("sample.accession") && (
           <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setShowImport(true)}>
+              Import CSV
+            </Button>
             <Button variant="secondary" onClick={() => setShowBulk(true)}>
               Bulk accession
             </Button>
@@ -322,6 +410,7 @@ export function SamplesPage() {
 
       {showAccession && <AccessionModal onClose={() => setShowAccession(false)} />}
       {showBulk && <BulkAccessionModal onClose={() => setShowBulk(false)} />}
+      {showImport && <ImportModal onClose={() => setShowImport(false)} />}
     </div>
   );
 }

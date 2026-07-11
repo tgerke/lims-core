@@ -49,3 +49,40 @@ export function toCsv(headers: string[], rows: (string | number | null)[][]): st
   const lines = [headers.map(cell).join(","), ...rows.map((r) => r.map(cell).join(","))];
   return `${lines.join("\r\n")}\r\n`;
 }
+
+/** RFC 4180 parser: rows of fields, honoring quotes, escaped quotes, and
+ * embedded commas/newlines. A trailing newline does not yield a blank row. */
+export function parseCsv(text: string): string[][] {
+  const s = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (s[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else inQuotes = false;
+      } else field += ch;
+      continue;
+    }
+    if (ch === '"') inQuotes = true;
+    else if (ch === ",") {
+      row.push(field);
+      field = "";
+    } else if (ch === "\n") {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+    } else field += ch;
+  }
+  if (field.length > 0 || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows;
+}

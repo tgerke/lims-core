@@ -8,6 +8,7 @@ export * from "./errors.js";
 export * from "./esign.js";
 export * from "./hold.js";
 export * from "./kit.js";
+export * from "./manifest.js";
 export * from "./permissions.js";
 export * from "./reports.js";
 export * from "./results.js";

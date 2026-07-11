@@ -1,4 +1,10 @@
-import { accessionSample, aliquotSample, bulkAccessionSamples, withActor } from "@lims-core/core";
+import {
+  accessionSample,
+  aliquotSample,
+  bulkAccessionSamples,
+  parseSampleManifest,
+  withActor,
+} from "@lims-core/core";
 import {
   custodyEvents,
   sampleLineage,
@@ -13,6 +19,8 @@ import {
   accessionRequestSchema,
   aliquotRequestSchema,
   bulkAccessionSchema,
+  importManifestSchema,
+  SAMPLE_TYPES,
 } from "@lims-core/schemas";
 import { asc, desc, eq } from "drizzle-orm";
 import type { FastifyPluginAsync } from "fastify";
@@ -139,6 +147,73 @@ export const sampleRoutes: FastifyPluginAsync = async (app) => {
             ...(parsed.data.storageUnitId ? { storageUnitId: parsed.data.storageUnitId } : {}),
             actorId: user.id,
           }),
+        );
+        return reply.code(201).send({ count: created.length, samples: created });
+      } catch (err) {
+        return sendDomainError(reply, err);
+      }
+    },
+  );
+
+  // CSV manifest import (bulk follow-on): parse + validate server-side, then
+  // accession every row in one transaction. All-or-nothing — a single bad row
+  // rejects the whole file with a per-row error report, so an import never lands
+  // half-accessioned. Reuses sample.accession.
+  app.post(
+    "/studies/:studyId/samples/import",
+    {
+      preHandler: requirePermission("sample.accession", (request) => {
+        const { studyId } = request.params as { studyId: string };
+        return { studyId };
+      }),
+    },
+    async (request, reply) => {
+      const { studyId } = request.params as { studyId: string };
+      const user = request.user;
+      if (!user) return reply.code(401).send({ error: "authentication required" });
+      const parsed = importManifestSchema.safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: parsed.error.message });
+
+      const [study] = await app.db.select().from(studies).where(eq(studies.id, studyId)).limit(1);
+      if (!study) return reply.code(404).send({ error: "study not found" });
+
+      const manifest = parseSampleManifest(parsed.data.csv, SAMPLE_TYPES);
+      const studySites = await app.db.select().from(sites).where(eq(sites.studyId, studyId));
+      const siteByOid = new Map(studySites.map((s) => [s.oid, s.id]));
+
+      // Resolve each row's site OID; unknown sites are per-row errors.
+      const errors = [...manifest.errors];
+      const resolved: { row: (typeof manifest.rows)[number]; siteId: string }[] = [];
+      for (const row of manifest.rows) {
+        const siteId = siteByOid.get(row.siteOid);
+        if (!siteId) errors.push({ row: row.line, message: `unknown site_oid "${row.siteOid}"` });
+        else resolved.push({ row, siteId });
+      }
+      errors.sort((a, b) => a.row - b.row);
+
+      if (errors.length > 0) {
+        return reply.code(400).send({ error: "manifest has errors", errors });
+      }
+      if (resolved.length === 0) {
+        return reply.code(400).send({ error: "manifest has no sample rows" });
+      }
+
+      try {
+        const created = await withActor(app.db, { userId: user.id, label: user.username }, (tx) =>
+          Promise.all(
+            resolved.map(({ row, siteId }) =>
+              accessionSample(tx, {
+                studyId,
+                studyOid: study.oid,
+                siteId,
+                sampleType: row.sampleType,
+                ...(row.subjectKey ? { subjectKey: row.subjectKey } : {}),
+                ...(row.studyEventOid ? { studyEventOid: row.studyEventOid } : {}),
+                ...(row.collectedAt ? { collectedAt: new Date(row.collectedAt) } : {}),
+                actorId: user.id,
+              }),
+            ),
+          ),
         );
         return reply.code(201).send({ count: created.length, samples: created });
       } catch (err) {
