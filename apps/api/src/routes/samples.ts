@@ -2,7 +2,9 @@ import {
   accessionSample,
   aliquotSample,
   bulkAccessionSamples,
+  deriveSample,
   parseSampleManifest,
+  poolSamples,
   recordFreezeThaw,
   setConcentration,
   withActor,
@@ -22,7 +24,9 @@ import {
   aliquotRequestSchema,
   bulkAccessionSchema,
   concentrationSchema,
+  deriveRequestSchema,
   importManifestSchema,
+  poolRequestSchema,
   SAMPLE_TYPES,
 } from "@lims-core/schemas";
 import { asc, desc, eq } from "drizzle-orm";
@@ -280,7 +284,7 @@ export const sampleRoutes: FastifyPluginAsync = async (app) => {
       site: site ?? null,
       storageUnit: storage[0] ?? null,
       custody,
-      lineage: { parent: parents[0] ?? null, children },
+      lineage: { parents, children },
     };
   });
 
@@ -369,6 +373,83 @@ export const sampleRoutes: FastifyPluginAsync = async (app) => {
           }),
         );
         return updated;
+      } catch (err) {
+        return sendDomainError(reply, err);
+      }
+    },
+  );
+
+  // Derive a new material type from one parent (ADR-0014). Bench-handling,
+  // scoped from the loaded sample like /aliquot.
+  app.post("/samples/:sampleId/derive", { preHandler: requireAuth }, async (request, reply) => {
+    const { sampleId } = request.params as { sampleId: string };
+    const user = request.user;
+    if (!user) return reply.code(401).send({ error: "authentication required" });
+    const parsed = deriveRequestSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ error: parsed.error.message });
+    const [sample] = await app.db.select().from(samples).where(eq(samples.id, sampleId)).limit(1);
+    if (!sample) return reply.code(404).send({ error: "sample not found" });
+    const allowed = await hasPermission(app.db, user.id, "sample.aliquot", {
+      studyId: sample.studyId,
+      siteId: sample.siteId,
+    });
+    if (!allowed) return reply.code(403).send({ error: "missing permission: sample.aliquot" });
+    const [study] = await app.db
+      .select()
+      .from(studies)
+      .where(eq(studies.id, sample.studyId))
+      .limit(1);
+    if (!study) return reply.code(404).send({ error: "study not found" });
+
+    try {
+      const result = await withActor(app.db, { userId: user.id, label: user.username }, (tx) =>
+        deriveSample(tx, {
+          parentId: sampleId,
+          studyOid: study.oid,
+          derivedType: parsed.data.derivedType,
+          ...(parsed.data.quantity !== undefined ? { quantity: parsed.data.quantity } : {}),
+          ...(parsed.data.quantityUnit ? { quantityUnit: parsed.data.quantityUnit } : {}),
+          actorId: user.id,
+        }),
+      );
+      return reply.code(201).send(result);
+    } catch (err) {
+      return sendDomainError(reply, err);
+    }
+  });
+
+  // Pool two or more parents into one specimen (ADR-0014). Study-scoped; the
+  // core validates every parent is in the study.
+  app.post(
+    "/studies/:studyId/samples/pool",
+    {
+      preHandler: requirePermission("sample.aliquot", (request) => {
+        const { studyId } = request.params as { studyId: string };
+        return { studyId };
+      }),
+    },
+    async (request, reply) => {
+      const { studyId } = request.params as { studyId: string };
+      const user = request.user;
+      if (!user) return reply.code(401).send({ error: "authentication required" });
+      const parsed = poolRequestSchema.safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: parsed.error.message });
+      const [study] = await app.db.select().from(studies).where(eq(studies.id, studyId)).limit(1);
+      if (!study) return reply.code(404).send({ error: "study not found" });
+
+      try {
+        const result = await withActor(app.db, { userId: user.id, label: user.username }, (tx) =>
+          poolSamples(tx, {
+            parentIds: parsed.data.parentIds,
+            studyId,
+            studyOid: study.oid,
+            ...(parsed.data.pooledType ? { pooledType: parsed.data.pooledType } : {}),
+            ...(parsed.data.quantity !== undefined ? { quantity: parsed.data.quantity } : {}),
+            ...(parsed.data.quantityUnit ? { quantityUnit: parsed.data.quantityUnit } : {}),
+            actorId: user.id,
+          }),
+        );
+        return reply.code(201).send(result);
       } catch (err) {
         return sendDomainError(reply, err);
       }

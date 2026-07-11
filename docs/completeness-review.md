@@ -52,6 +52,7 @@ These are implemented, enforced, and covered by tests.
 | --- | --- | --- |
 | Specimen accession | `routes/samples.ts`, `core/accession.ts` | Study/site scoping, specimen typing, EDC subject/visit **reference only** (no PHI), per-study accession IDs. |
 | Aliquot workflow + volume | `core/aliquot.ts`, `routes/samples.ts` | Parent→child aliquots with parent-suffixed IDs, `sample_lineage`, `aliquot` custody events; optional per-sample quantity, conserved and deducted on aliquoting, parent depleted at zero (CoC-04, ADR-0006). |
+| Derivation + pooling + measurements | `core/derivation.ts`, `core/measurement.ts` | Derive a new material type from one parent and pool many parents into one, both audited in `sample_lineage` with matching custody events (ADR-0014); freeze-thaw counts and concentration on the specimen (ADR-0013). |
 | Shipments with custody handoff | `core/shipment.ts`, `routes/shipments.ts` | Pack → ship → receive a batch site→central; per-phase `transfer` custody events, in-transit state, send/receive separation of duties (CoC-06, ADR-0007). |
 | Collection kits | `core/kit.ts`, `routes/kits.ts` | Assemble → ship → deliver empty-container kits to a site with contents and an audited lifecycle (ADR-0011). Kit→collected-sample linkage and par-level inventory deferred. |
 | Bulk accessioning + freezer map | `core/bulk.ts`, `routes/studies.ts` | Count-based batch accession (shared fields), optional sequential box-fill (CoC-01/03); read-only, study-scoped freezer-map grid with capacity (ADR-0008). Interactive placement deferred. |
@@ -76,11 +77,6 @@ The data model or enum values exist so a future build won't have to migrate an
 append-only table, but there is no logic or UI. A buyer should read these as
 "architected for, months out," not "available."
 
-- **Derivation / pooling trees.** Aliquoting is now built (Tier 1, CoC-04) with
-  optional per-sample quantity, and freeze-thaw counts and concentration are now
-  tracked (Tier 1, ADR-0013). `sample_lineage` also carries `derivation` and
-  `pool` relations, but the derivation (e.g. blood → DNA) and many-parent pooling
-  workflows are not built yet.
 - **Analytical module.** Test specifications/acceptance criteria, calculated
   results, worksheets, QC samples (blanks/spikes/duplicates/controls), and
   Certificate of Analysis generation are designed in `plan.md` but absent from
@@ -92,8 +88,9 @@ None of the following exist in the repository yet. This is the real distance to
 "production LIMS," listed so it can be prioritized rather than discovered.
 
 **Biobank depth**
-- Derivation/pooling trees (aliquot volume/quantity, freeze-thaw counts, and
-  concentration tracking are now built — Tier 1)
+- Multi-level lineage-graph visualization and proportional pooling ratios
+  (aliquot volume/quantity, freeze-thaw counts, concentration, single-parent
+  derivation, and many-parent pooling are now built — Tier 1)
 - Kit → collected-sample linkage and par-level kit inventory (assemble → ship →
   deliver collection kits and sample-bearing shipments are now built — Tier 1)
 - Interactive freezer-map placement (count-based bulk accession, a read-only map
@@ -153,8 +150,9 @@ If the goal is to run a sponsor's or CRO's biospecimen management, the shortest 
 usable pilot — in rough priority order:
 
 1. ~~**Aliquot workflow + volume/quantity fields.**~~ **Done** (Tier 1, CoC-04,
-   ADR-0006): parent→child aliquots with conserved volume, plus freeze-thaw
-   counts and concentration (ADR-0013). Derivation/pooling trees still open.
+   ADR-0006): parent→child aliquots with conserved volume, freeze-thaw counts
+   and concentration (ADR-0013), and single-parent derivation + many-parent
+   pooling (ADR-0014). Deeper lineage-graph visualization still open.
 2. ~~**Kits & shipments with custody handoff.**~~ **Done** (Tier 1, CoC-06,
    ADR-0007/0011): pack → ship → receive site→central with an unbroken custody
    trail, plus assemble → ship → deliver collection kits (outbound empty

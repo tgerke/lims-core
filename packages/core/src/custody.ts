@@ -8,6 +8,8 @@ export type CustodyEventType =
   | "storage_remove"
   | "transfer"
   | "aliquot"
+  | "derivation"
+  | "pool"
   | "hold"
   | "hold_release"
   | "disposal";

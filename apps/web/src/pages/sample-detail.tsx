@@ -1,3 +1,4 @@
+import { SAMPLE_TYPES } from "@lims-core/schemas";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
@@ -161,43 +162,58 @@ function formatQuantity(sample: SampleDetail): string | null {
   return `${sample.quantity}${unit}`;
 }
 
+function LineageLink({ id, accessionId }: { id: string; accessionId: string }) {
+  return (
+    <Link
+      to="/samples/$sampleId"
+      params={{ sampleId: id }}
+      className="font-mono font-medium text-indigo-700 hover:underline"
+    >
+      {accessionId}
+    </Link>
+  );
+}
+
 function LineagePanel({ sample }: { sample: SampleDetail }) {
-  const { parent, children } = sample.lineage;
-  if (!parent && children.length === 0) return null;
+  const { parents, children } = sample.lineage;
+  if (parents.length === 0 && children.length === 0) return null;
+  // Group children by relation so aliquots, derivatives, and pools read clearly.
+  const childrenByRelation = new Map<string, typeof children>();
+  for (const c of children) {
+    const list = childrenByRelation.get(c.relation) ?? [];
+    list.push(c);
+    childrenByRelation.set(c.relation, list);
+  }
+  const label = (relation: string, n: number) =>
+    relation === "aliquot"
+      ? `${n} aliquot${n === 1 ? "" : "s"}`
+      : relation === "derivation"
+        ? `${n} deriv${n === 1 ? "ative" : "atives"}`
+        : relation === "pool"
+          ? `pooled into ${n}`
+          : `${n} ${relation}`;
+
   return (
     <Card title="Lineage">
-      {parent && (
-        <p className="text-sm text-slate-700">
-          {parent.relation} of{" "}
-          <Link
-            to="/samples/$sampleId"
-            params={{ sampleId: parent.id }}
-            className="font-mono font-medium text-indigo-700 hover:underline"
-          >
-            {parent.accessionId}
-          </Link>
+      {parents.map((parent) => (
+        <p key={parent.id} className="text-sm text-slate-700">
+          {parent.relation} of <LineageLink id={parent.id} accessionId={parent.accessionId} />
         </p>
-      )}
-      {children.length > 0 && (
-        <div className={parent ? "mt-3" : undefined}>
+      ))}
+      {[...childrenByRelation.entries()].map(([relation, list]) => (
+        <div key={relation} className="mt-3">
           <p className="text-xs tracking-wide text-slate-500 uppercase">
-            {children.length} aliquot{children.length === 1 ? "" : "s"}
+            {label(relation, list.length)}
           </p>
           <ul className="mt-1 space-y-1">
-            {children.map((child) => (
+            {list.map((child) => (
               <li key={child.id} className="text-sm">
-                <Link
-                  to="/samples/$sampleId"
-                  params={{ sampleId: child.id }}
-                  className="font-mono font-medium text-indigo-700 hover:underline"
-                >
-                  {child.accessionId}
-                </Link>
+                <LineageLink id={child.id} accessionId={child.accessionId} />
               </li>
             ))}
           </ul>
         </div>
-      )}
+      ))}
     </Card>
   );
 }
@@ -362,6 +378,57 @@ function HoldPanel({ sample }: { sample: SampleDetail }) {
           </Button>
         )}
       </div>
+    </Card>
+  );
+}
+
+// Derive a new material type from this specimen (ADR-0014), e.g. whole_blood -> dna.
+function DerivePanel({ sample }: { sample: SampleDetail }) {
+  const { permissions } = useStudy();
+  const queryClient = useQueryClient();
+  const [derivedType, setDerivedType] = useState("dna");
+
+  const derive = useMutation({
+    mutationFn: () =>
+      api(`/samples/${sample.id}/derive`, {
+        method: "POST",
+        body: JSON.stringify({ derivedType }),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["sample", sample.id] }),
+  });
+
+  if (!permissions.includes("sample.aliquot")) return null;
+  const locked =
+    sample.status === "disposed" || sample.status === "on_hold" || sample.status === "depleted";
+  if (locked) return null;
+
+  return (
+    <Card title="Derive">
+      <form
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault();
+          derive.mutate();
+        }}
+        className="flex items-end gap-2"
+      >
+        <Field label="New material type">
+          <select
+            className={inputClass}
+            value={derivedType}
+            onChange={(e) => setDerivedType(e.target.value)}
+          >
+            {SAMPLE_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t.replace(/_/g, " ")}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Button type="submit" disabled={derive.isPending}>
+          Derive
+        </Button>
+      </form>
+      <ErrorNote message={derive.error ? derive.error.message : null} />
     </Card>
   );
 }
@@ -790,6 +857,7 @@ export function SampleDetailPage() {
         <div className="space-y-6">
           <StoragePanel sample={s} />
           <AliquotPanel sample={s} />
+          <DerivePanel sample={s} />
           <MeasurementPanel sample={s} />
           <HoldPanel sample={s} />
           <LineagePanel sample={s} />

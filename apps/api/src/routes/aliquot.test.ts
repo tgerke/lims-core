@@ -123,7 +123,7 @@ describe("aliquot workflow (CoC-04)", () => {
     const parentDetail = (await detail(token, parent.id)).json();
     expect(parentDetail.lineage.children).toHaveLength(3);
     const childDetail = (await detail(token, children[0].id)).json();
-    expect(childDetail.lineage.parent.accessionId).toBe(parent.accessionId);
+    expect(childDetail.lineage.parents[0].accessionId).toBe(parent.accessionId);
 
     // Custody: an aliquot event on the parent and on each child.
     const parentCustody = parentDetail.custody.map((c: { eventType: string }) => c.eventType);

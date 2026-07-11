@@ -100,6 +100,22 @@ export const concentrationSchema = z.object({
 });
 export type ConcentrationRequest = z.infer<typeof concentrationSchema>;
 
+// Derivation (one parent -> new type) and pooling (many parents -> one), ADR-0014.
+export const deriveRequestSchema = z.object({
+  derivedType: sampleTypeSchema,
+  quantity: z.number().positive().optional(),
+  quantityUnit: z.string().min(1).max(20).optional(),
+});
+export type DeriveRequest = z.infer<typeof deriveRequestSchema>;
+
+export const poolRequestSchema = z.object({
+  parentIds: z.array(z.uuid()).min(2).max(96),
+  pooledType: sampleTypeSchema.optional(),
+  quantity: z.number().positive().optional(),
+  quantityUnit: z.string().min(1).max(20).optional(),
+});
+export type PoolRequest = z.infer<typeof poolRequestSchema>;
+
 export const createShipmentSchema = z.object({
   destination: z.string().min(1).max(200),
   originSiteId: z.uuid().optional(),

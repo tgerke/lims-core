@@ -109,7 +109,7 @@ export interface SampleDetail {
   site: Site | null;
   storageUnit: StorageUnit | null;
   custody: CustodyEvent[];
-  lineage: { parent: LineageRef | null; children: LineageRef[] };
+  lineage: { parents: LineageRef[]; children: LineageRef[] };
 }
 
 export interface ResultVersion {

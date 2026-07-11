@@ -327,11 +327,109 @@ function ImportModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// Pool two or more available samples into one specimen (ADR-0014).
+const POOLABLE = new Set(["registered", "in_storage", "in_testing"]);
+
+function PoolModal({ onClose }: { onClose: () => void }) {
+  const { study } = useStudy();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const samplesQuery = useQuery({
+    queryKey: ["samples", study.id],
+    queryFn: () => api<SampleRow[]>(`/studies/${study.id}/samples`),
+  });
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [pooledType, setPooledType] = useState("");
+
+  const eligible = (samplesQuery.data ?? []).filter((s) => POOLABLE.has(s.status));
+  const toggle = (id: string) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const pool = useMutation({
+    mutationFn: () =>
+      api<{ pooled: { id: string } }>(`/studies/${study.id}/samples/pool`, {
+        method: "POST",
+        body: JSON.stringify({
+          parentIds: [...picked],
+          ...(pooledType ? { pooledType } : {}),
+        }),
+      }),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["samples", study.id] });
+      onClose();
+      navigate({ to: "/samples/$sampleId", params: { sampleId: result.pooled.id } });
+    },
+  });
+
+  return (
+    <Modal title="Pool samples" onClose={onClose}>
+      <form
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault();
+          if (picked.size >= 2) pool.mutate();
+        }}
+        className="space-y-4"
+      >
+        <Field label="Pooled type" hint="Leave blank to inherit when all sources share a type.">
+          <select
+            className={inputClass}
+            value={pooledType}
+            onChange={(e) => setPooledType(e.target.value)}
+          >
+            <option value="">Same as sources</option>
+            {SAMPLE_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t.replace(/_/g, " ")}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field
+          label={`Sources (${picked.size} selected)`}
+          hint="Pick at least two available samples."
+        >
+          <div className="max-h-52 overflow-y-auto rounded-lg border border-slate-200">
+            {eligible.length === 0 ? (
+              <p className="p-3 text-sm text-slate-500">No available samples to pool.</p>
+            ) : (
+              eligible.map((s) => (
+                <label
+                  key={s.id}
+                  className="flex cursor-pointer items-center gap-2 border-b border-slate-100 px-3 py-2 text-sm last:border-0 hover:bg-slate-50"
+                >
+                  <input type="checkbox" checked={picked.has(s.id)} onChange={() => toggle(s.id)} />
+                  <span className="font-mono">{s.accessionId}</span>
+                  <span className="text-slate-500">{s.sampleType.replace(/_/g, " ")}</span>
+                  <StatusBadge status={s.status} />
+                </label>
+              ))
+            )}
+          </div>
+        </Field>
+        <ErrorNote message={pool.error ? pool.error.message : null} />
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={picked.size < 2 || pool.isPending}>
+            Pool {picked.size > 0 ? picked.size : ""} samples
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 export function SamplesPage() {
   const { study, permissions } = useStudy();
   const [showAccession, setShowAccession] = useState(false);
   const [showBulk, setShowBulk] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showPool, setShowPool] = useState(false);
   const samples = useQuery({
     queryKey: ["samples", study.id],
     queryFn: () => api<SampleRow[]>(`/studies/${study.id}/samples`),
@@ -346,17 +444,24 @@ export function SamplesPage() {
             {study.oid} — {study.name}
           </p>
         </div>
-        {permissions.includes("sample.accession") && (
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setShowImport(true)}>
-              Import CSV
+        <div className="flex gap-2">
+          {permissions.includes("sample.aliquot") && (
+            <Button variant="secondary" onClick={() => setShowPool(true)}>
+              Pool
             </Button>
-            <Button variant="secondary" onClick={() => setShowBulk(true)}>
-              Bulk accession
-            </Button>
-            <Button onClick={() => setShowAccession(true)}>+ Accession sample</Button>
-          </div>
-        )}
+          )}
+          {permissions.includes("sample.accession") && (
+            <>
+              <Button variant="secondary" onClick={() => setShowImport(true)}>
+                Import CSV
+              </Button>
+              <Button variant="secondary" onClick={() => setShowBulk(true)}>
+                Bulk accession
+              </Button>
+              <Button onClick={() => setShowAccession(true)}>+ Accession sample</Button>
+            </>
+          )}
+        </div>
       </div>
 
       <Card>
@@ -411,6 +516,7 @@ export function SamplesPage() {
       {showAccession && <AccessionModal onClose={() => setShowAccession(false)} />}
       {showBulk && <BulkAccessionModal onClose={() => setShowBulk(false)} />}
       {showImport && <ImportModal onClose={() => setShowImport(false)} />}
+      {showPool && <PoolModal onClose={() => setShowPool(false)} />}
     </div>
   );
 }
