@@ -51,6 +51,7 @@ These are implemented, enforced, and covered by tests.
 | Capability | Where | Notes |
 | --- | --- | --- |
 | Specimen accession | `routes/samples.ts`, `core/accession.ts` | Study/site scoping, specimen typing, EDC subject/visit **reference only** (no PHI), per-study accession IDs. |
+| Aliquot workflow + volume | `core/aliquot.ts`, `routes/samples.ts` | Parent→child aliquots with parent-suffixed IDs, `sample_lineage`, `aliquot` custody events; optional per-sample quantity, conserved and deducted on aliquoting, parent depleted at zero (CoC-04, ADR-0006). |
 | 2D barcode / label | `packages/labels` (bwip-js) | DataMatrix + human-readable accession ID, served as PNG. |
 | Freezer storage | `routes/storage.ts`, `core/storage.ts` | facility→freezer→shelf→rack→box hierarchy, position allocation, **one-occupant-per-position** constraint, temperature on units. |
 | Chain of custody | `custody_event` + triggers | Append-only events; collection/receipt/storage/transfer/aliquot/hold/disposal types (some reserved). |
@@ -69,9 +70,11 @@ The data model or enum values exist so a future build won't have to migrate an
 append-only table, but there is no logic or UI. A buyer should read these as
 "architected for, months out," not "available."
 
-- **Aliquot / derivation trees.** `sample_lineage` exists (aliquot/derivation/
-  pool); no aliquoting workflow, and **no volume/quantity/concentration fields
-  on `sample`** — a hard requirement for real biobanking.
+- **Derivation / pooling trees.** Aliquoting is now built (Tier 1, CoC-04) with
+  optional per-sample quantity. `sample_lineage` also carries `derivation` and
+  `pool` relations, but the derivation (e.g. blood → DNA) and many-parent pooling
+  workflows are not built yet. Concentration and freeze-thaw counts are also still
+  absent.
 - **Consent-withdrawal holds (CoC-05).** `on_hold`/`disposed` statuses and
   `hold`/`hold_release`/`disposal` custody types are reserved; the propagation
   logic from EDC is roadmap.
@@ -86,7 +89,8 @@ None of the following exist in the repository yet. This is the real distance to
 "production LIMS," listed so it can be prioritized rather than discovered.
 
 **Biobank depth**
-- Aliquot volume/quantity tracking and freeze-thaw cycle counts
+- Freeze-thaw cycle counts, concentration tracking, and derivation/pooling trees
+  (aliquot volume/quantity itself is now built — Tier 1)
 - Kits and inbound/outbound shipments with custody handoff
 - Bulk / batch accessioning and plate/rack (grid) operations
 - Freezer-map visualization and capacity dashboards
@@ -142,8 +146,9 @@ quarter."
 If the goal is to run a sponsor's or CRO's biospecimen management, the shortest path to a
 usable pilot — in rough priority order:
 
-1. **Aliquot workflow + volume/quantity fields.** Without volumes and aliquot
-   trees, you cannot manage real inventory. Highest leverage.
+1. ~~**Aliquot workflow + volume/quantity fields.**~~ **Done** (Tier 1, CoC-04,
+   ADR-0006): parent→child aliquots with conserved volume. Follow-ons still open:
+   freeze-thaw counts, concentration, and derivation/pooling trees.
 2. **Kits & shipments with custody handoff.** Trials collect at sites and ship
    to a central lab; this is table stakes.
 3. **Bulk accessioning + freezer-map UI.** Throughput and usability.

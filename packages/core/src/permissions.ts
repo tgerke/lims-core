@@ -3,6 +3,7 @@ export const PERMISSIONS = [
   "study.manage",
   "sample.accession",
   "sample.store",
+  "sample.aliquot",
   "order.create",
   "result.enter",
   "result.verify",

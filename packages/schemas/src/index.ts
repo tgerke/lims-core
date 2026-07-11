@@ -48,6 +48,13 @@ export const storeRequestSchema = z.object({
 });
 export type StoreRequest = z.infer<typeof storeRequestSchema>;
 
+export const aliquotRequestSchema = z.object({
+  count: z.number().int().min(1).max(96),
+  // Per-child amount; required by the server when the parent tracks quantity.
+  volume: z.number().positive().optional(),
+});
+export type AliquotRequest = z.infer<typeof aliquotRequestSchema>;
+
 export const orderRequestSchema = z.object({
   serviceId: z.uuid(),
 });

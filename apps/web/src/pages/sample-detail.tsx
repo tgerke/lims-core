@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "@tanstack/react-router";
+import { Link, useParams } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import {
   type AnalysisService,
@@ -146,6 +146,130 @@ function StoragePanel({ sample }: { sample: SampleDetail }) {
         <ErrorNote message={store.error ? store.error.message : null} />
         <Button type="submit" disabled={!boxId || store.isPending}>
           Store sample
+        </Button>
+      </form>
+    </Card>
+  );
+}
+
+function formatQuantity(sample: SampleDetail): string | null {
+  if (sample.quantity === null) return null;
+  const unit = sample.quantityUnit ? ` ${sample.quantityUnit}` : "";
+  if (sample.initialQuantity !== null && sample.initialQuantity !== sample.quantity) {
+    return `${sample.quantity} of ${sample.initialQuantity}${unit}`;
+  }
+  return `${sample.quantity}${unit}`;
+}
+
+function LineagePanel({ sample }: { sample: SampleDetail }) {
+  const { parent, children } = sample.lineage;
+  if (!parent && children.length === 0) return null;
+  return (
+    <Card title="Lineage">
+      {parent && (
+        <p className="text-sm text-slate-700">
+          {parent.relation} of{" "}
+          <Link
+            to="/samples/$sampleId"
+            params={{ sampleId: parent.id }}
+            className="font-mono font-medium text-indigo-700 hover:underline"
+          >
+            {parent.accessionId}
+          </Link>
+        </p>
+      )}
+      {children.length > 0 && (
+        <div className={parent ? "mt-3" : undefined}>
+          <p className="text-xs tracking-wide text-slate-500 uppercase">
+            {children.length} aliquot{children.length === 1 ? "" : "s"}
+          </p>
+          <ul className="mt-1 space-y-1">
+            {children.map((child) => (
+              <li key={child.id} className="text-sm">
+                <Link
+                  to="/samples/$sampleId"
+                  params={{ sampleId: child.id }}
+                  className="font-mono font-medium text-indigo-700 hover:underline"
+                >
+                  {child.accessionId}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function AliquotPanel({ sample }: { sample: SampleDetail }) {
+  const { permissions } = useStudy();
+  const queryClient = useQueryClient();
+  const [count, setCount] = useState("1");
+  const [volume, setVolume] = useState("");
+  const tracked = sample.quantity !== null;
+
+  const aliquot = useMutation({
+    mutationFn: () =>
+      api(`/samples/${sample.id}/aliquot`, {
+        method: "POST",
+        body: JSON.stringify({
+          count: Number(count),
+          ...(volume ? { volume: Number(volume) } : {}),
+        }),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["sample", sample.id] }),
+  });
+
+  if (!permissions.includes("sample.aliquot")) return null;
+  if (sample.status === "depleted" || sample.status === "disposed") {
+    return (
+      <Card title="Aliquot">
+        <p className="text-sm text-slate-500">Sample is {sample.status} and cannot be aliquoted.</p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card title="Aliquot">
+      <form
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault();
+          if (Number(count) > 0) aliquot.mutate();
+        }}
+        className="space-y-3"
+      >
+        <div className="flex gap-3">
+          <Field label="How many">
+            <input
+              className={inputClass}
+              type="number"
+              min="1"
+              max="96"
+              value={count}
+              onChange={(e) => setCount(e.target.value)}
+            />
+          </Field>
+          {tracked && (
+            <Field
+              label={`Volume each${sample.quantityUnit ? ` (${sample.quantityUnit})` : ""}`}
+              hint={`${sample.quantity}${sample.quantityUnit ? ` ${sample.quantityUnit}` : ""} available`}
+            >
+              <input
+                className={inputClass}
+                type="number"
+                step="any"
+                min="0"
+                value={volume}
+                onChange={(e) => setVolume(e.target.value)}
+                placeholder="0.5"
+              />
+            </Field>
+          )}
+        </div>
+        <ErrorNote message={aliquot.error ? aliquot.error.message : null} />
+        <Button type="submit" disabled={(tracked && !volume) || aliquot.isPending}>
+          Create aliquots
         </Button>
       </form>
     </Card>
@@ -462,6 +586,7 @@ export function SampleDetailPage() {
           <p className="mt-1 flex items-center gap-3 text-sm text-slate-500">
             <StatusBadge status={s.status} />
             <span>{s.sampleType.replace(/_/g, " ")}</span>
+            {formatQuantity(s) && <span className="font-mono text-xs">{formatQuantity(s)}</span>}
             {s.subjectKey && <span className="font-mono text-xs">{s.subjectKey}</span>}
             {s.site && <span>{s.site.oid}</span>}
           </p>
@@ -479,6 +604,8 @@ export function SampleDetailPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-6">
           <StoragePanel sample={s} />
+          <AliquotPanel sample={s} />
+          <LineagePanel sample={s} />
           <CustodyTimeline sample={s} />
         </div>
         <OrdersPanel sample={s} />

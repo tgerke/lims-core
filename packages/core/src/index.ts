@@ -1,5 +1,6 @@
 export * from "./accession.js";
 export * from "./actor.js";
+export * from "./aliquot.js";
 export * from "./audit.js";
 export * from "./custody.js";
 export * from "./errors.js";

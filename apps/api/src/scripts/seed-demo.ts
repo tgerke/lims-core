@@ -1,10 +1,11 @@
-import { withActor } from "@lims-core/core";
+import { accessionSample, withActor } from "@lims-core/core";
 import {
   analysisServices,
   createDb,
   databaseUrl,
   roles,
   runMigrations,
+  samples,
   sites,
   storageUnits,
   studies,
@@ -151,6 +152,21 @@ async function main() {
         { code: "TESTO", name: "Total Testosterone", unit: "ng/dL" },
         { code: "CTDNA", name: "ctDNA Yield", unit: "ng" },
       ]);
+
+      // A whole-blood specimen with a tracked volume, ready to aliquot (CoC-04).
+      const demoSample = await accessionSample(tx, {
+        studyId: study.id,
+        studyOid: study.oid,
+        siteId: site.id,
+        sampleType: "whole_blood",
+        subjectKey: "SUBJ-001",
+        collectedAt: new Date(),
+        actorId: byUsername("tchen"),
+      });
+      await tx
+        .update(samples)
+        .set({ quantity: "10", quantityUnit: "mL", initialQuantity: "10" })
+        .where(eq(samples.id, demoSample.id));
     });
 
     console.log(`seed: created study ${STUDY_OID} with site SITE-01`);

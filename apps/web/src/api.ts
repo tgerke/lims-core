@@ -61,6 +61,8 @@ export interface SampleRow {
   accessionId: string;
   sampleType: string;
   status: string;
+  quantity: string | null;
+  quantityUnit: string | null;
   subjectKey: string | null;
   collectedAt: string | null;
   receivedAt: string | null;
@@ -80,12 +82,21 @@ export interface CustodyEvent {
   details: Record<string, unknown> | null;
 }
 
+export interface LineageRef {
+  id: string;
+  accessionId: string;
+  relation: string;
+}
+
 export interface SampleDetail {
   id: string;
   studyId: string;
   accessionId: string;
   sampleType: string;
   status: string;
+  quantity: string | null;
+  quantityUnit: string | null;
+  initialQuantity: string | null;
   subjectKey: string | null;
   studyEventOid: string | null;
   collectedAt: string | null;
@@ -94,6 +105,7 @@ export interface SampleDetail {
   site: Site | null;
   storageUnit: StorageUnit | null;
   custody: CustodyEvent[];
+  lineage: { parent: LineageRef | null; children: LineageRef[] };
 }
 
 export interface ResultVersion {

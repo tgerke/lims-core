@@ -1,11 +1,19 @@
-import { accessionSample, withActor } from "@lims-core/core";
-import { custodyEvents, samples, sites, storageUnits, studies, users } from "@lims-core/db";
+import { accessionSample, aliquotSample, withActor } from "@lims-core/core";
+import {
+  custodyEvents,
+  sampleLineage,
+  samples,
+  sites,
+  storageUnits,
+  studies,
+  users,
+} from "@lims-core/db";
 import { generateDataMatrixPng } from "@lims-core/labels/datamatrix";
-import { accessionRequestSchema } from "@lims-core/schemas";
+import { accessionRequestSchema, aliquotRequestSchema } from "@lims-core/schemas";
 import { asc, desc, eq } from "drizzle-orm";
 import type { FastifyPluginAsync } from "fastify";
 import { requireAuth, requirePermission } from "../auth/plugin.js";
-import { isStudyMember } from "../auth/rbac.js";
+import { hasPermission, isStudyMember } from "../auth/rbac.js";
 import { sendDomainError } from "./helpers.js";
 
 export const sampleRoutes: FastifyPluginAsync = async (app) => {
@@ -22,6 +30,8 @@ export const sampleRoutes: FastifyPluginAsync = async (app) => {
         accessionId: samples.accessionId,
         sampleType: samples.sampleType,
         status: samples.status,
+        quantity: samples.quantity,
+        quantityUnit: samples.quantityUnit,
         subjectKey: samples.subjectKey,
         collectedAt: samples.collectedAt,
         receivedAt: samples.receivedAt,
@@ -116,7 +126,63 @@ export const sampleRoutes: FastifyPluginAsync = async (app) => {
       .leftJoin(storageUnits, eq(custodyEvents.storageUnitId, storageUnits.id))
       .where(eq(custodyEvents.sampleId, sampleId))
       .orderBy(asc(custodyEvents.occurredAt), asc(custodyEvents.createdAt));
-    return { ...sample, site: site ?? null, storageUnit: storage[0] ?? null, custody };
+
+    const lineageCols = {
+      id: samples.id,
+      accessionId: samples.accessionId,
+      relation: sampleLineage.relation,
+    };
+    const parents = await app.db
+      .select(lineageCols)
+      .from(sampleLineage)
+      .innerJoin(samples, eq(sampleLineage.parentId, samples.id))
+      .where(eq(sampleLineage.childId, sampleId));
+    const children = await app.db
+      .select(lineageCols)
+      .from(sampleLineage)
+      .innerJoin(samples, eq(sampleLineage.childId, samples.id))
+      .where(eq(sampleLineage.parentId, sampleId))
+      .orderBy(asc(samples.accessionId));
+
+    return {
+      ...sample,
+      site: site ?? null,
+      storageUnit: storage[0] ?? null,
+      custody,
+      lineage: { parent: parents[0] ?? null, children },
+    };
+  });
+
+  app.post("/samples/:sampleId/aliquot", { preHandler: requireAuth }, async (request, reply) => {
+    const { sampleId } = request.params as { sampleId: string };
+    const user = request.user;
+    if (!user) return reply.code(401).send({ error: "authentication required" });
+    const parsed = aliquotRequestSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ error: parsed.error.message });
+
+    // Scope comes from the sample, so the permission check runs after the load
+    // (site-scoped grants apply at the sample's site), matching /store.
+    const [sample] = await app.db.select().from(samples).where(eq(samples.id, sampleId)).limit(1);
+    if (!sample) return reply.code(404).send({ error: "sample not found" });
+    const allowed = await hasPermission(app.db, user.id, "sample.aliquot", {
+      studyId: sample.studyId,
+      siteId: sample.siteId,
+    });
+    if (!allowed) return reply.code(403).send({ error: "missing permission: sample.aliquot" });
+
+    try {
+      const result = await withActor(app.db, { userId: user.id, label: user.username }, (tx) =>
+        aliquotSample(tx, {
+          parentId: sampleId,
+          count: parsed.data.count,
+          ...(parsed.data.volume !== undefined ? { volume: parsed.data.volume } : {}),
+          actorId: user.id,
+        }),
+      );
+      return reply.code(201).send(result);
+    } catch (err) {
+      return sendDomainError(reply, err);
+    }
   });
 
   // Label PNG: DataMatrix of the accession id (ADR-0004). Membership-gated
