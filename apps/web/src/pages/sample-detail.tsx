@@ -1,5 +1,6 @@
+import { SAMPLE_TYPES } from "@lims-core/schemas";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "@tanstack/react-router";
+import { Link, useParams } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import {
   type AnalysisService,
@@ -148,6 +149,381 @@ function StoragePanel({ sample }: { sample: SampleDetail }) {
           Store sample
         </Button>
       </form>
+    </Card>
+  );
+}
+
+function formatQuantity(sample: SampleDetail): string | null {
+  if (sample.quantity === null) return null;
+  const unit = sample.quantityUnit ? ` ${sample.quantityUnit}` : "";
+  if (sample.initialQuantity !== null && sample.initialQuantity !== sample.quantity) {
+    return `${sample.quantity} of ${sample.initialQuantity}${unit}`;
+  }
+  return `${sample.quantity}${unit}`;
+}
+
+function LineageLink({ id, accessionId }: { id: string; accessionId: string }) {
+  return (
+    <Link
+      to="/samples/$sampleId"
+      params={{ sampleId: id }}
+      className="font-mono font-medium text-indigo-700 hover:underline"
+    >
+      {accessionId}
+    </Link>
+  );
+}
+
+function LineagePanel({ sample }: { sample: SampleDetail }) {
+  const { parents, children } = sample.lineage;
+  if (parents.length === 0 && children.length === 0) return null;
+  // Group children by relation so aliquots, derivatives, and pools read clearly.
+  const childrenByRelation = new Map<string, typeof children>();
+  for (const c of children) {
+    const list = childrenByRelation.get(c.relation) ?? [];
+    list.push(c);
+    childrenByRelation.set(c.relation, list);
+  }
+  const label = (relation: string, n: number) =>
+    relation === "aliquot"
+      ? `${n} aliquot${n === 1 ? "" : "s"}`
+      : relation === "derivation"
+        ? `${n} deriv${n === 1 ? "ative" : "atives"}`
+        : relation === "pool"
+          ? `pooled into ${n}`
+          : `${n} ${relation}`;
+
+  return (
+    <Card title="Lineage">
+      {parents.map((parent) => (
+        <p key={parent.id} className="text-sm text-slate-700">
+          {parent.relation} of <LineageLink id={parent.id} accessionId={parent.accessionId} />
+        </p>
+      ))}
+      {[...childrenByRelation.entries()].map(([relation, list]) => (
+        <div key={relation} className="mt-3">
+          <p className="text-xs tracking-wide text-slate-500 uppercase">
+            {label(relation, list.length)}
+          </p>
+          <ul className="mt-1 space-y-1">
+            {list.map((child) => (
+              <li key={child.id} className="text-sm">
+                <LineageLink id={child.id} accessionId={child.accessionId} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </Card>
+  );
+}
+
+function AliquotPanel({ sample }: { sample: SampleDetail }) {
+  const { permissions } = useStudy();
+  const queryClient = useQueryClient();
+  const [count, setCount] = useState("1");
+  const [volume, setVolume] = useState("");
+  const tracked = sample.quantity !== null;
+
+  const aliquot = useMutation({
+    mutationFn: () =>
+      api(`/samples/${sample.id}/aliquot`, {
+        method: "POST",
+        body: JSON.stringify({
+          count: Number(count),
+          ...(volume ? { volume: Number(volume) } : {}),
+        }),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["sample", sample.id] }),
+  });
+
+  if (!permissions.includes("sample.aliquot")) return null;
+  if (sample.status === "depleted" || sample.status === "disposed") {
+    return (
+      <Card title="Aliquot">
+        <p className="text-sm text-slate-500">Sample is {sample.status} and cannot be aliquoted.</p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card title="Aliquot">
+      <form
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault();
+          if (Number(count) > 0) aliquot.mutate();
+        }}
+        className="space-y-3"
+      >
+        <div className="flex gap-3">
+          <Field label="How many">
+            <input
+              className={inputClass}
+              type="number"
+              min="1"
+              max="96"
+              value={count}
+              onChange={(e) => setCount(e.target.value)}
+            />
+          </Field>
+          {tracked && (
+            <Field
+              label={`Volume each${sample.quantityUnit ? ` (${sample.quantityUnit})` : ""}`}
+              hint={`${sample.quantity}${sample.quantityUnit ? ` ${sample.quantityUnit}` : ""} available`}
+            >
+              <input
+                className={inputClass}
+                type="number"
+                step="any"
+                min="0"
+                value={volume}
+                onChange={(e) => setVolume(e.target.value)}
+                placeholder="0.5"
+              />
+            </Field>
+          )}
+        </div>
+        <ErrorNote message={aliquot.error ? aliquot.error.message : null} />
+        <Button type="submit" disabled={(tracked && !volume) || aliquot.isPending}>
+          Create aliquots
+        </Button>
+      </form>
+    </Card>
+  );
+}
+
+function latestHoldReason(sample: SampleDetail): string | null {
+  for (let i = sample.custody.length - 1; i >= 0; i--) {
+    const e = sample.custody[i];
+    if (e?.eventType === "hold") {
+      const reason = e.details?.reason;
+      return typeof reason === "string" ? reason : null;
+    }
+  }
+  return null;
+}
+
+// Consent-withdrawal holds and disposal for this one sample (CoC-05). Subject-wide
+// holds are available on the API but scoped here to the sample in view.
+function HoldPanel({ sample }: { sample: SampleDetail }) {
+  const { study, permissions } = useStudy();
+  const queryClient = useQueryClient();
+  const [reason, setReason] = useState("");
+  const canHold = permissions.includes("sample.hold");
+  const canDispose = permissions.includes("sample.dispose");
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["sample", sample.id] });
+    setReason("");
+  };
+  const act = (path: string) =>
+    api(`/studies/${study.id}/${path}`, {
+      method: "POST",
+      body: JSON.stringify({ sampleId: sample.id, reason }),
+    });
+  const hold = useMutation({ mutationFn: () => act("holds"), onSuccess: invalidate });
+  const release = useMutation({ mutationFn: () => act("holds/release"), onSuccess: invalidate });
+  const dispose = useMutation({ mutationFn: () => act("disposals"), onSuccess: invalidate });
+  const pending = hold.isPending || release.isPending || dispose.isPending;
+  const error = hold.error || release.error || dispose.error;
+
+  if (!canHold && !canDispose) return null;
+  if (sample.status === "disposed") {
+    return (
+      <Card title="Hold & disposal">
+        <p className="text-sm text-slate-500">Sample is disposed. No further custody actions.</p>
+      </Card>
+    );
+  }
+
+  const onHold = sample.status === "on_hold";
+  return (
+    <Card title="Hold & disposal">
+      {onHold && (
+        <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          On hold{latestHoldReason(sample) ? ` — ${latestHoldReason(sample)}` : ""}. Blocked from
+          aliquoting, storage, and shipment.
+        </p>
+      )}
+      <Field
+        label="Reason"
+        hint="Recorded on the custody event (e.g. consent withdrawn, quarantine)."
+      >
+        <input
+          className={inputClass}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder={onHold ? "Reason for release / disposal" : "Reason for hold"}
+        />
+      </Field>
+      <ErrorNote message={error ? error.message : null} />
+      <div className="mt-3 flex gap-2">
+        {canHold &&
+          (onHold ? (
+            <Button
+              variant="secondary"
+              onClick={() => release.mutate()}
+              disabled={!reason || pending}
+            >
+              Release hold
+            </Button>
+          ) : (
+            <Button variant="secondary" onClick={() => hold.mutate()} disabled={!reason || pending}>
+              Place hold
+            </Button>
+          ))}
+        {canDispose && (
+          <Button variant="danger" onClick={() => dispose.mutate()} disabled={!reason || pending}>
+            Dispose
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+// Derive a new material type from this specimen (ADR-0014), e.g. whole_blood -> dna.
+function DerivePanel({ sample }: { sample: SampleDetail }) {
+  const { permissions } = useStudy();
+  const queryClient = useQueryClient();
+  const [derivedType, setDerivedType] = useState("dna");
+
+  const derive = useMutation({
+    mutationFn: () =>
+      api(`/samples/${sample.id}/derive`, {
+        method: "POST",
+        body: JSON.stringify({ derivedType }),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["sample", sample.id] }),
+  });
+
+  if (!permissions.includes("sample.aliquot")) return null;
+  const locked =
+    sample.status === "disposed" || sample.status === "on_hold" || sample.status === "depleted";
+  if (locked) return null;
+
+  return (
+    <Card title="Derive">
+      <form
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault();
+          derive.mutate();
+        }}
+        className="flex items-end gap-2"
+      >
+        <Field label="New material type">
+          <select
+            className={inputClass}
+            value={derivedType}
+            onChange={(e) => setDerivedType(e.target.value)}
+          >
+            {SAMPLE_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t.replace(/_/g, " ")}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Button type="submit" disabled={derive.isPending}>
+          Derive
+        </Button>
+      </form>
+      <ErrorNote message={derive.error ? derive.error.message : null} />
+    </Card>
+  );
+}
+
+// Freeze-thaw cycles and concentration (ADR-0013): bench-handling, gated on
+// sample.aliquot, disabled once the sample is disposed or on hold.
+function MeasurementPanel({ sample }: { sample: SampleDetail }) {
+  const { permissions } = useStudy();
+  const queryClient = useQueryClient();
+  const [concentration, setConcentration] = useState("");
+  const [unit, setUnit] = useState(sample.concentrationUnit ?? "");
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["sample", sample.id] });
+
+  const freezeThaw = useMutation({
+    mutationFn: () => api(`/samples/${sample.id}/freeze-thaw`, { method: "POST", body: "{}" }),
+    onSuccess: invalidate,
+  });
+  const setConc = useMutation({
+    mutationFn: () =>
+      api(`/samples/${sample.id}/concentration`, {
+        method: "POST",
+        body: JSON.stringify({ concentration: Number(concentration), ...(unit ? { unit } : {}) }),
+      }),
+    onSuccess: () => {
+      setConcentration("");
+      invalidate();
+    },
+  });
+
+  if (!permissions.includes("sample.aliquot")) return null;
+  const locked = sample.status === "disposed" || sample.status === "on_hold";
+  const error = freezeThaw.error || setConc.error;
+
+  return (
+    <Card title="Measurements">
+      <dl className="mb-4 grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <dt className="text-xs tracking-wide text-slate-500 uppercase">Freeze-thaw cycles</dt>
+          <dd className="font-mono font-medium text-slate-800">{sample.freezeThawCount}</dd>
+        </div>
+        <div>
+          <dt className="text-xs tracking-wide text-slate-500 uppercase">Concentration</dt>
+          <dd className="font-mono font-medium text-slate-800">
+            {sample.concentration !== null
+              ? `${sample.concentration}${sample.concentrationUnit ? ` ${sample.concentrationUnit}` : ""}`
+              : "—"}
+          </dd>
+        </div>
+      </dl>
+      {locked ? (
+        <p className="text-sm text-slate-500">
+          Sample is {sample.status}; measurements are locked.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          <Button
+            variant="secondary"
+            onClick={() => freezeThaw.mutate()}
+            disabled={freezeThaw.isPending}
+          >
+            Record freeze-thaw
+          </Button>
+          <form
+            onSubmit={(e: FormEvent) => {
+              e.preventDefault();
+              if (Number(concentration) >= 0 && concentration !== "") setConc.mutate();
+            }}
+            className="flex items-end gap-2"
+          >
+            <Field label="Concentration">
+              <input
+                className={inputClass}
+                type="number"
+                step="any"
+                min="0"
+                value={concentration}
+                onChange={(e) => setConcentration(e.target.value)}
+                placeholder="25.4"
+              />
+            </Field>
+            <Field label="Unit">
+              <input
+                className={`${inputClass} max-w-24`}
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                placeholder="ng/µL"
+              />
+            </Field>
+            <Button type="submit" disabled={concentration === "" || setConc.isPending}>
+              Set
+            </Button>
+          </form>
+          <ErrorNote message={error ? error.message : null} />
+        </div>
+      )}
     </Card>
   );
 }
@@ -462,6 +838,7 @@ export function SampleDetailPage() {
           <p className="mt-1 flex items-center gap-3 text-sm text-slate-500">
             <StatusBadge status={s.status} />
             <span>{s.sampleType.replace(/_/g, " ")}</span>
+            {formatQuantity(s) && <span className="font-mono text-xs">{formatQuantity(s)}</span>}
             {s.subjectKey && <span className="font-mono text-xs">{s.subjectKey}</span>}
             {s.site && <span>{s.site.oid}</span>}
           </p>
@@ -479,6 +856,11 @@ export function SampleDetailPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-6">
           <StoragePanel sample={s} />
+          <AliquotPanel sample={s} />
+          <DerivePanel sample={s} />
+          <MeasurementPanel sample={s} />
+          <HoldPanel sample={s} />
+          <LineagePanel sample={s} />
           <CustodyTimeline sample={s} />
         </div>
         <OrdersPanel sample={s} />

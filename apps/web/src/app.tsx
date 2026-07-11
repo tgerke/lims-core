@@ -89,6 +89,30 @@ export function AppLayout() {
                 Samples
               </Link>
               <Link
+                to="/shipments"
+                className="rounded-lg px-3 py-1.5 text-slate-600 hover:bg-slate-100 [&.active]:bg-indigo-50 [&.active]:font-medium [&.active]:text-indigo-700"
+              >
+                Shipments
+              </Link>
+              <Link
+                to="/kits"
+                className="rounded-lg px-3 py-1.5 text-slate-600 hover:bg-slate-100 [&.active]:bg-indigo-50 [&.active]:font-medium [&.active]:text-indigo-700"
+              >
+                Kits
+              </Link>
+              <Link
+                to="/storage"
+                className="rounded-lg px-3 py-1.5 text-slate-600 hover:bg-slate-100 [&.active]:bg-indigo-50 [&.active]:font-medium [&.active]:text-indigo-700"
+              >
+                Storage
+              </Link>
+              <Link
+                to="/reports"
+                className="rounded-lg px-3 py-1.5 text-slate-600 hover:bg-slate-100 [&.active]:bg-indigo-50 [&.active]:font-medium [&.active]:text-indigo-700"
+              >
+                Reports
+              </Link>
+              <Link
                 to="/audit"
                 className="rounded-lg px-3 py-1.5 text-slate-600 hover:bg-slate-100 [&.active]:bg-indigo-50 [&.active]:font-medium [&.active]:text-indigo-700"
               >

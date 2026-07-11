@@ -61,6 +61,8 @@ export interface SampleRow {
   accessionId: string;
   sampleType: string;
   status: string;
+  quantity: string | null;
+  quantityUnit: string | null;
   subjectKey: string | null;
   collectedAt: string | null;
   receivedAt: string | null;
@@ -80,12 +82,25 @@ export interface CustodyEvent {
   details: Record<string, unknown> | null;
 }
 
+export interface LineageRef {
+  id: string;
+  accessionId: string;
+  relation: string;
+}
+
 export interface SampleDetail {
   id: string;
   studyId: string;
   accessionId: string;
   sampleType: string;
   status: string;
+  preHoldStatus: string | null;
+  quantity: string | null;
+  quantityUnit: string | null;
+  initialQuantity: string | null;
+  freezeThawCount: number;
+  concentration: string | null;
+  concentrationUnit: string | null;
   subjectKey: string | null;
   studyEventOid: string | null;
   collectedAt: string | null;
@@ -94,6 +109,7 @@ export interface SampleDetail {
   site: Site | null;
   storageUnit: StorageUnit | null;
   custody: CustodyEvent[];
+  lineage: { parents: LineageRef[]; children: LineageRef[] };
 }
 
 export interface ResultVersion {
@@ -134,6 +150,96 @@ export interface AnalysisService {
   code: string;
   name: string;
   unit: string | null;
+}
+
+export interface BoxMap {
+  unit: {
+    id: string;
+    name: string;
+    gridRows: number;
+    gridCols: number;
+    temperatureC: string | null;
+  };
+  occupants: { position: string; sampleId: string; accessionId: string; sampleType: string }[];
+  othersOccupiedPositions: string[];
+}
+
+export interface ShipmentRow {
+  id: string;
+  shipmentNumber: string;
+  status: "packed" | "in_transit" | "received" | "cancelled";
+  destination: string;
+  originSite: string | null;
+  carrier: string | null;
+  trackingNumber: string | null;
+  shippedAt: string | null;
+  receivedAt: string | null;
+  createdAt: string;
+  itemCount: number;
+}
+
+export interface ShipmentItem {
+  id: string;
+  accessionId: string;
+  sampleType: string;
+  status: string;
+}
+
+export interface ShipmentDetail {
+  id: string;
+  shipmentNumber: string;
+  status: "packed" | "in_transit" | "received" | "cancelled";
+  destination: string;
+  carrier: string | null;
+  trackingNumber: string | null;
+  shippedAt: string | null;
+  receivedAt: string | null;
+  createdAt: string;
+  originSite: Site | null;
+  createdBy: string | null;
+  items: ShipmentItem[];
+}
+
+export interface CountRow {
+  key: string;
+  count: number;
+}
+
+export interface InventoryReport {
+  total: number;
+  byStatus: CountRow[];
+  byType: CountRow[];
+  bySite: CountRow[];
+}
+
+export interface DurationStats {
+  n: number;
+  avgHours: number;
+  medianHours: number;
+  maxHours: number;
+}
+
+export interface TurnaroundReport {
+  collectionToReceipt: DurationStats | null;
+  receiptToStorage: DurationStats | null;
+}
+
+export interface KitItem {
+  containerType: string;
+  quantity: number;
+}
+
+export interface KitRow {
+  id: string;
+  kitNumber: string;
+  status: "assembled" | "shipped" | "delivered" | "cancelled";
+  destinationSite: string;
+  carrier: string | null;
+  trackingNumber: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+  items: KitItem[];
 }
 
 export interface AuditEvent {

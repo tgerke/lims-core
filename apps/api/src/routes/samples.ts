@@ -1,11 +1,38 @@
-import { accessionSample, withActor } from "@lims-core/core";
-import { custodyEvents, samples, sites, storageUnits, studies, users } from "@lims-core/db";
+import {
+  accessionSample,
+  aliquotSample,
+  bulkAccessionSamples,
+  deriveSample,
+  parseSampleManifest,
+  poolSamples,
+  recordFreezeThaw,
+  setConcentration,
+  withActor,
+} from "@lims-core/core";
+import {
+  custodyEvents,
+  sampleLineage,
+  samples,
+  sites,
+  storageUnits,
+  studies,
+  users,
+} from "@lims-core/db";
 import { generateDataMatrixPng } from "@lims-core/labels/datamatrix";
-import { accessionRequestSchema } from "@lims-core/schemas";
+import {
+  accessionRequestSchema,
+  aliquotRequestSchema,
+  bulkAccessionSchema,
+  concentrationSchema,
+  deriveRequestSchema,
+  importManifestSchema,
+  poolRequestSchema,
+  SAMPLE_TYPES,
+} from "@lims-core/schemas";
 import { asc, desc, eq } from "drizzle-orm";
 import type { FastifyPluginAsync } from "fastify";
 import { requireAuth, requirePermission } from "../auth/plugin.js";
-import { isStudyMember } from "../auth/rbac.js";
+import { hasPermission, isStudyMember } from "../auth/rbac.js";
 import { sendDomainError } from "./helpers.js";
 
 export const sampleRoutes: FastifyPluginAsync = async (app) => {
@@ -22,6 +49,8 @@ export const sampleRoutes: FastifyPluginAsync = async (app) => {
         accessionId: samples.accessionId,
         sampleType: samples.sampleType,
         status: samples.status,
+        quantity: samples.quantity,
+        quantityUnit: samples.quantityUnit,
         subjectKey: samples.subjectKey,
         collectedAt: samples.collectedAt,
         receivedAt: samples.receivedAt,
@@ -84,6 +113,122 @@ export const sampleRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 
+  app.post(
+    "/studies/:studyId/samples/bulk",
+    {
+      preHandler: requirePermission("sample.accession", (request) => {
+        const { studyId } = request.params as { studyId: string };
+        const body = (request.body ?? {}) as { siteId?: string };
+        return { studyId, ...(body.siteId ? { siteId: body.siteId } : {}) };
+      }),
+    },
+    async (request, reply) => {
+      const { studyId } = request.params as { studyId: string };
+      const user = request.user;
+      if (!user) return reply.code(401).send({ error: "authentication required" });
+      const parsed = bulkAccessionSchema.safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: parsed.error.message });
+
+      const [study] = await app.db.select().from(studies).where(eq(studies.id, studyId)).limit(1);
+      if (!study) return reply.code(404).send({ error: "study not found" });
+      const [site] = await app.db
+        .select()
+        .from(sites)
+        .where(eq(sites.id, parsed.data.siteId))
+        .limit(1);
+      if (!site || site.studyId !== studyId) {
+        return reply.code(400).send({ error: "site does not belong to this study" });
+      }
+
+      try {
+        const created = await withActor(app.db, { userId: user.id, label: user.username }, (tx) =>
+          bulkAccessionSamples(tx, {
+            studyId,
+            studyOid: study.oid,
+            siteId: site.id,
+            sampleType: parsed.data.sampleType,
+            count: parsed.data.count,
+            ...(parsed.data.subjectKey ? { subjectKey: parsed.data.subjectKey } : {}),
+            ...(parsed.data.studyEventOid ? { studyEventOid: parsed.data.studyEventOid } : {}),
+            ...(parsed.data.collectedAt ? { collectedAt: new Date(parsed.data.collectedAt) } : {}),
+            ...(parsed.data.storageUnitId ? { storageUnitId: parsed.data.storageUnitId } : {}),
+            actorId: user.id,
+          }),
+        );
+        return reply.code(201).send({ count: created.length, samples: created });
+      } catch (err) {
+        return sendDomainError(reply, err);
+      }
+    },
+  );
+
+  // CSV manifest import (bulk follow-on): parse + validate server-side, then
+  // accession every row in one transaction. All-or-nothing — a single bad row
+  // rejects the whole file with a per-row error report, so an import never lands
+  // half-accessioned. Reuses sample.accession.
+  app.post(
+    "/studies/:studyId/samples/import",
+    {
+      preHandler: requirePermission("sample.accession", (request) => {
+        const { studyId } = request.params as { studyId: string };
+        return { studyId };
+      }),
+    },
+    async (request, reply) => {
+      const { studyId } = request.params as { studyId: string };
+      const user = request.user;
+      if (!user) return reply.code(401).send({ error: "authentication required" });
+      const parsed = importManifestSchema.safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: parsed.error.message });
+
+      const [study] = await app.db.select().from(studies).where(eq(studies.id, studyId)).limit(1);
+      if (!study) return reply.code(404).send({ error: "study not found" });
+
+      const manifest = parseSampleManifest(parsed.data.csv, SAMPLE_TYPES);
+      const studySites = await app.db.select().from(sites).where(eq(sites.studyId, studyId));
+      const siteByOid = new Map(studySites.map((s) => [s.oid, s.id]));
+
+      // Resolve each row's site OID; unknown sites are per-row errors.
+      const errors = [...manifest.errors];
+      const resolved: { row: (typeof manifest.rows)[number]; siteId: string }[] = [];
+      for (const row of manifest.rows) {
+        const siteId = siteByOid.get(row.siteOid);
+        if (!siteId) errors.push({ row: row.line, message: `unknown site_oid "${row.siteOid}"` });
+        else resolved.push({ row, siteId });
+      }
+      errors.sort((a, b) => a.row - b.row);
+
+      if (errors.length > 0) {
+        return reply.code(400).send({ error: "manifest has errors", errors });
+      }
+      if (resolved.length === 0) {
+        return reply.code(400).send({ error: "manifest has no sample rows" });
+      }
+
+      try {
+        const created = await withActor(app.db, { userId: user.id, label: user.username }, (tx) =>
+          Promise.all(
+            resolved.map(({ row, siteId }) =>
+              accessionSample(tx, {
+                studyId,
+                studyOid: study.oid,
+                siteId,
+                sampleType: row.sampleType,
+                ...(row.subjectKey ? { subjectKey: row.subjectKey } : {}),
+                ...(row.studyEventOid ? { studyEventOid: row.studyEventOid } : {}),
+                ...(row.collectedAt ? { collectedAt: new Date(row.collectedAt) } : {}),
+                actorId: user.id,
+              }),
+            ),
+          ),
+        );
+        return reply.code(201).send({ count: created.length, samples: created });
+      } catch (err) {
+        return sendDomainError(reply, err);
+      }
+    },
+  );
+
   app.get("/samples/:sampleId", { preHandler: requireAuth }, async (request, reply) => {
     const { sampleId } = request.params as { sampleId: string };
     const user = request.user;
@@ -116,8 +261,200 @@ export const sampleRoutes: FastifyPluginAsync = async (app) => {
       .leftJoin(storageUnits, eq(custodyEvents.storageUnitId, storageUnits.id))
       .where(eq(custodyEvents.sampleId, sampleId))
       .orderBy(asc(custodyEvents.occurredAt), asc(custodyEvents.createdAt));
-    return { ...sample, site: site ?? null, storageUnit: storage[0] ?? null, custody };
+
+    const lineageCols = {
+      id: samples.id,
+      accessionId: samples.accessionId,
+      relation: sampleLineage.relation,
+    };
+    const parents = await app.db
+      .select(lineageCols)
+      .from(sampleLineage)
+      .innerJoin(samples, eq(sampleLineage.parentId, samples.id))
+      .where(eq(sampleLineage.childId, sampleId));
+    const children = await app.db
+      .select(lineageCols)
+      .from(sampleLineage)
+      .innerJoin(samples, eq(sampleLineage.childId, samples.id))
+      .where(eq(sampleLineage.parentId, sampleId))
+      .orderBy(asc(samples.accessionId));
+
+    return {
+      ...sample,
+      site: site ?? null,
+      storageUnit: storage[0] ?? null,
+      custody,
+      lineage: { parents, children },
+    };
   });
+
+  app.post("/samples/:sampleId/aliquot", { preHandler: requireAuth }, async (request, reply) => {
+    const { sampleId } = request.params as { sampleId: string };
+    const user = request.user;
+    if (!user) return reply.code(401).send({ error: "authentication required" });
+    const parsed = aliquotRequestSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ error: parsed.error.message });
+
+    // Scope comes from the sample, so the permission check runs after the load
+    // (site-scoped grants apply at the sample's site), matching /store.
+    const [sample] = await app.db.select().from(samples).where(eq(samples.id, sampleId)).limit(1);
+    if (!sample) return reply.code(404).send({ error: "sample not found" });
+    const allowed = await hasPermission(app.db, user.id, "sample.aliquot", {
+      studyId: sample.studyId,
+      siteId: sample.siteId,
+    });
+    if (!allowed) return reply.code(403).send({ error: "missing permission: sample.aliquot" });
+
+    try {
+      const result = await withActor(app.db, { userId: user.id, label: user.username }, (tx) =>
+        aliquotSample(tx, {
+          parentId: sampleId,
+          count: parsed.data.count,
+          ...(parsed.data.volume !== undefined ? { volume: parsed.data.volume } : {}),
+          actorId: user.id,
+        }),
+      );
+      return reply.code(201).send(result);
+    } catch (err) {
+      return sendDomainError(reply, err);
+    }
+  });
+
+  // Freeze-thaw and concentration (ADR-0013): bench-handling operations that
+  // reuse sample.aliquot, scoped from the loaded sample like /aliquot.
+  app.post(
+    "/samples/:sampleId/freeze-thaw",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const { sampleId } = request.params as { sampleId: string };
+      const user = request.user;
+      if (!user) return reply.code(401).send({ error: "authentication required" });
+      const [sample] = await app.db.select().from(samples).where(eq(samples.id, sampleId)).limit(1);
+      if (!sample) return reply.code(404).send({ error: "sample not found" });
+      const allowed = await hasPermission(app.db, user.id, "sample.aliquot", {
+        studyId: sample.studyId,
+        siteId: sample.siteId,
+      });
+      if (!allowed) return reply.code(403).send({ error: "missing permission: sample.aliquot" });
+      try {
+        const updated = await withActor(app.db, { userId: user.id, label: user.username }, (tx) =>
+          recordFreezeThaw(tx, { sampleId, actorId: user.id }),
+        );
+        return updated;
+      } catch (err) {
+        return sendDomainError(reply, err);
+      }
+    },
+  );
+
+  app.post(
+    "/samples/:sampleId/concentration",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const { sampleId } = request.params as { sampleId: string };
+      const user = request.user;
+      if (!user) return reply.code(401).send({ error: "authentication required" });
+      const parsed = concentrationSchema.safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: parsed.error.message });
+      const [sample] = await app.db.select().from(samples).where(eq(samples.id, sampleId)).limit(1);
+      if (!sample) return reply.code(404).send({ error: "sample not found" });
+      const allowed = await hasPermission(app.db, user.id, "sample.aliquot", {
+        studyId: sample.studyId,
+        siteId: sample.siteId,
+      });
+      if (!allowed) return reply.code(403).send({ error: "missing permission: sample.aliquot" });
+      try {
+        const updated = await withActor(app.db, { userId: user.id, label: user.username }, (tx) =>
+          setConcentration(tx, {
+            sampleId,
+            concentration: parsed.data.concentration,
+            ...(parsed.data.unit ? { unit: parsed.data.unit } : {}),
+            actorId: user.id,
+          }),
+        );
+        return updated;
+      } catch (err) {
+        return sendDomainError(reply, err);
+      }
+    },
+  );
+
+  // Derive a new material type from one parent (ADR-0014). Bench-handling,
+  // scoped from the loaded sample like /aliquot.
+  app.post("/samples/:sampleId/derive", { preHandler: requireAuth }, async (request, reply) => {
+    const { sampleId } = request.params as { sampleId: string };
+    const user = request.user;
+    if (!user) return reply.code(401).send({ error: "authentication required" });
+    const parsed = deriveRequestSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ error: parsed.error.message });
+    const [sample] = await app.db.select().from(samples).where(eq(samples.id, sampleId)).limit(1);
+    if (!sample) return reply.code(404).send({ error: "sample not found" });
+    const allowed = await hasPermission(app.db, user.id, "sample.aliquot", {
+      studyId: sample.studyId,
+      siteId: sample.siteId,
+    });
+    if (!allowed) return reply.code(403).send({ error: "missing permission: sample.aliquot" });
+    const [study] = await app.db
+      .select()
+      .from(studies)
+      .where(eq(studies.id, sample.studyId))
+      .limit(1);
+    if (!study) return reply.code(404).send({ error: "study not found" });
+
+    try {
+      const result = await withActor(app.db, { userId: user.id, label: user.username }, (tx) =>
+        deriveSample(tx, {
+          parentId: sampleId,
+          studyOid: study.oid,
+          derivedType: parsed.data.derivedType,
+          ...(parsed.data.quantity !== undefined ? { quantity: parsed.data.quantity } : {}),
+          ...(parsed.data.quantityUnit ? { quantityUnit: parsed.data.quantityUnit } : {}),
+          actorId: user.id,
+        }),
+      );
+      return reply.code(201).send(result);
+    } catch (err) {
+      return sendDomainError(reply, err);
+    }
+  });
+
+  // Pool two or more parents into one specimen (ADR-0014). Study-scoped; the
+  // core validates every parent is in the study.
+  app.post(
+    "/studies/:studyId/samples/pool",
+    {
+      preHandler: requirePermission("sample.aliquot", (request) => {
+        const { studyId } = request.params as { studyId: string };
+        return { studyId };
+      }),
+    },
+    async (request, reply) => {
+      const { studyId } = request.params as { studyId: string };
+      const user = request.user;
+      if (!user) return reply.code(401).send({ error: "authentication required" });
+      const parsed = poolRequestSchema.safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: parsed.error.message });
+      const [study] = await app.db.select().from(studies).where(eq(studies.id, studyId)).limit(1);
+      if (!study) return reply.code(404).send({ error: "study not found" });
+
+      try {
+        const result = await withActor(app.db, { userId: user.id, label: user.username }, (tx) =>
+          poolSamples(tx, {
+            parentIds: parsed.data.parentIds,
+            studyId,
+            studyOid: study.oid,
+            ...(parsed.data.pooledType ? { pooledType: parsed.data.pooledType } : {}),
+            ...(parsed.data.quantity !== undefined ? { quantity: parsed.data.quantity } : {}),
+            ...(parsed.data.quantityUnit ? { quantityUnit: parsed.data.quantityUnit } : {}),
+            actorId: user.id,
+          }),
+        );
+        return reply.code(201).send(result);
+      } catch (err) {
+        return sendDomainError(reply, err);
+      }
+    },
+  );
 
   // Label PNG: DataMatrix of the accession id (ADR-0004). Membership-gated
   // like the rest of the sample record.

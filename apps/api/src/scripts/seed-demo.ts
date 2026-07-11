@@ -1,10 +1,17 @@
-import { withActor } from "@lims-core/core";
+import {
+  accessionSample,
+  bulkAccessionSamples,
+  createKit,
+  createShipment,
+  withActor,
+} from "@lims-core/core";
 import {
   analysisServices,
   createDb,
   databaseUrl,
   roles,
   runMigrations,
+  samples,
   sites,
   storageUnits,
   studies,
@@ -141,16 +148,87 @@ async function main() {
         .values({ parentId: shelf.id, name: "Rack 1", kind: "rack" })
         .returning();
       if (!rack) throw new Error("rack insert failed");
-      await tx.insert(storageUnits).values([
-        { parentId: rack.id, name: "Box A", kind: "box", gridRows: 9, gridCols: 9 },
-        { parentId: rack.id, name: "Box B", kind: "box", gridRows: 9, gridCols: 9 },
-      ]);
+      const [boxA] = await tx
+        .insert(storageUnits)
+        .values([
+          { parentId: rack.id, name: "Box A", kind: "box", gridRows: 9, gridCols: 9 },
+          { parentId: rack.id, name: "Box B", kind: "box", gridRows: 9, gridCols: 9 },
+        ])
+        .returning();
+      if (!boxA) throw new Error("box insert failed");
 
       await tx.insert(analysisServices).values([
         { code: "PSA", name: "Prostate-Specific Antigen", unit: "ng/mL" },
         { code: "TESTO", name: "Total Testosterone", unit: "ng/dL" },
         { code: "CTDNA", name: "ctDNA Yield", unit: "ng" },
       ]);
+
+      // A whole-blood specimen with a tracked volume, ready to aliquot (CoC-04).
+      const demoSample = await accessionSample(tx, {
+        studyId: study.id,
+        studyOid: study.oid,
+        siteId: site.id,
+        sampleType: "whole_blood",
+        subjectKey: "SUBJ-001",
+        collectedAt: new Date(),
+        actorId: byUsername("tchen"),
+      });
+      await tx
+        .update(samples)
+        .set({ quantity: "10", quantityUnit: "mL", initialQuantity: "10" })
+        .where(eq(samples.id, demoSample.id));
+
+      // Two serum specimens packed into a shipment to the central lab (CoC-06).
+      const packed = [];
+      for (let i = 0; i < 2; i++) {
+        packed.push(
+          await accessionSample(tx, {
+            studyId: study.id,
+            studyOid: study.oid,
+            siteId: site.id,
+            sampleType: "serum",
+            subjectKey: "SUBJ-002",
+            collectedAt: new Date(),
+            actorId: byUsername("tchen"),
+          }),
+        );
+      }
+      await createShipment(tx, {
+        studyId: study.id,
+        studyOid: study.oid,
+        destination: "Central Biorepository",
+        originSiteId: site.id,
+        carrier: "World Courier",
+        sampleIds: packed.map((s) => s.id),
+        actorId: byUsername("tchen"),
+      });
+
+      // A collection kit assembled for the site (empty containers, CoC-agnostic).
+      await createKit(tx, {
+        studyId: study.id,
+        studyOid: study.oid,
+        destinationSiteId: site.id,
+        carrier: "World Courier",
+        items: [
+          { containerType: "EDTA tube (10 mL)", quantity: 20 },
+          { containerType: "Serum separator tube", quantity: 20 },
+          { containerType: "Cryovial (2 mL)", quantity: 50 },
+        ],
+        actorId: byUsername("tchen"),
+      });
+
+      // A batch of serum specimens filling the first positions of Box A, so the
+      // freezer map shows real occupancy.
+      await bulkAccessionSamples(tx, {
+        studyId: study.id,
+        studyOid: study.oid,
+        siteId: site.id,
+        sampleType: "serum",
+        count: 8,
+        collectedAt: new Date(),
+        storageUnitId: boxA.id,
+        actorId: byUsername("tchen"),
+      });
     });
 
     console.log(`seed: created study ${STUDY_OID} with site SITE-01`);

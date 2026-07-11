@@ -7,9 +7,14 @@ import {
 } from "@tanstack/react-router";
 import { AppLayout } from "./app.js";
 import { AuditTrailPage } from "./pages/audit.js";
+import { KitsPage } from "./pages/kits.js";
 import { LoginPage } from "./pages/login.js";
+import { ReportsPage } from "./pages/reports.js";
 import { SampleDetailPage } from "./pages/sample-detail.js";
 import { SamplesPage } from "./pages/samples.js";
+import { ShipmentDetailPage } from "./pages/shipment-detail.js";
+import { ShipmentsPage } from "./pages/shipments.js";
+import { StoragePage } from "./pages/storage.js";
 
 const rootRoute = createRootRoute({ component: Outlet });
 
@@ -45,6 +50,36 @@ const sampleDetailRoute = createRoute({
   component: SampleDetailPage,
 });
 
+const shipmentsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/shipments",
+  component: ShipmentsPage,
+});
+
+const shipmentDetailRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/shipments/$shipmentId",
+  component: ShipmentDetailPage,
+});
+
+const kitsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/kits",
+  component: KitsPage,
+});
+
+const storageRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/storage",
+  component: StoragePage,
+});
+
+const reportsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/reports",
+  component: ReportsPage,
+});
+
 const auditRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/audit",
@@ -53,7 +88,17 @@ const auditRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  appRoute.addChildren([indexRoute, samplesRoute, sampleDetailRoute, auditRoute]),
+  appRoute.addChildren([
+    indexRoute,
+    samplesRoute,
+    sampleDetailRoute,
+    shipmentsRoute,
+    shipmentDetailRoute,
+    kitsRoute,
+    storageRoute,
+    reportsRoute,
+    auditRoute,
+  ]),
 ]);
 
 export const router = createRouter({ routeTree });

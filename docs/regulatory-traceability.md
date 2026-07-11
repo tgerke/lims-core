@@ -30,11 +30,17 @@ repo, not to a paraphrase of the regulation.
 | CoC-01 | Custody begins at collection/receipt | `accessionSample` opens collection + receipt events | `routes/slice.test.ts` → "custody opened" |
 | CoC-02 | Custody records are immutable | `custody_event` append-only trigger | `db/compliance.test.ts` → "rejects UPDATE and DELETE on custody_event" |
 | CoC-03 | Location changes are recorded; one occupant per position | `storeSample` + `storage_add` event; partial unique index on `(storage_unit_id, storage_position)` | `routes/slice.test.ts` → "stores… with a custody event", "rejects a double-booked position" |
-| CoC-05 | Consent-withdrawal hold/disposal (deferred) | `sample.status` and `custody_event.event_type` reserve `hold`/`hold_release`/`disposal` now; logic deferred | states present in `0000_init.sql`; enforcement is roadmap |
+| CoC-04 | Aliquoting preserves an auditable parent→child lineage and conserves quantity | `aliquotSample`: `sample_lineage` rows + `aliquot` custody events on parent and children; volume deducted and conserved (ADR-0006); quantity changes captured by the `sample` audit trigger | `routes/aliquot.test.ts` → "conserving quantity and lineage", over-draw/depletion cases |
+| CoC-05 | Consent-withdrawal / quarantine holds move affected samples and their lineage out of use with an auditable reason; disposal is terminal and attributed | `placeHold`/`releaseHold`/`disposeSamples`: subject+lineage propagation, `hold`/`hold_release`/`disposal` custody events carrying the reason, `on_hold` rejected by store/aliquot/shipment guards, `pre_hold_status` restores state on release (ADR-0009); `sample.hold` vs `sample.dispose` split | `routes/hold.test.ts` → "holds a whole subject, blocks use, and releases", "propagates a hold to lineage descendants", "disposes as a terminal, supervisor-only step" |
+| CoC-06 | A sample in transit keeps an unbroken custody record from origin to destination | `shipShipment`/`receiveShipment` record a `transfer` custody event per phase; `send`/`receive` split by RBAC (ADR-0007) | `routes/shipment.test.ts` → "moving custody unbroken", separation-of-duties and transition-guard cases |
 
 ## Deferred (states reserved, logic not built)
 
-CoC-05 consent-withdrawal holds, aliquot-tree depth, kits/shipments, the
-analytical module (specs/QC/CoA), and instrument integration are out of scope
-for this slice. The regulated tables reserve the enum values they will need so
-no future migration edits an append-only table (see ADR-0002 rationale).
+Collection kits, the analytical module (specs/QC/CoA), and instrument
+integration are out of scope for this slice. The regulated tables reserve the
+enum values they will need so no future migration edits an append-only table
+(see ADR-0002 rationale). Aliquoting (CoC-04), shipment custody handoff (CoC-06),
+and consent-withdrawal holds (CoC-05) are now built; deeper lineage cases —
+pooling and derivation (e.g. blood → DNA) — reuse `sample_lineage` but remain
+roadmap. A hold does not yet block result entry on an in-progress order, and
+there is no automated EDC-driven hold propagation (a coordinator places it).

@@ -1,4 +1,4 @@
-import { integer, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { integer, numeric, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { users } from "./auth.js";
 import { storageUnits } from "./storage.js";
 import { sites, studies } from "./studies.js";
@@ -14,6 +14,13 @@ export const samples = pgTable("sample", {
   accessionId: text("accession_id").notNull().unique(),
   sampleType: text("sample_type").notNull(),
   status: text("status").notNull().default("registered"),
+  preHoldStatus: text("pre_hold_status"),
+  quantity: numeric("quantity"),
+  quantityUnit: text("quantity_unit"),
+  initialQuantity: numeric("initial_quantity"),
+  freezeThawCount: integer("freeze_thaw_count").notNull().default(0),
+  concentration: numeric("concentration"),
+  concentrationUnit: text("concentration_unit"),
   subjectKey: text("subject_key"),
   studyEventOid: text("study_event_oid"),
   collectedAt: timestamp("collected_at", { withTimezone: true }),

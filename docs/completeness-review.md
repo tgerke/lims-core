@@ -51,6 +51,14 @@ These are implemented, enforced, and covered by tests.
 | Capability | Where | Notes |
 | --- | --- | --- |
 | Specimen accession | `routes/samples.ts`, `core/accession.ts` | Study/site scoping, specimen typing, EDC subject/visit **reference only** (no PHI), per-study accession IDs. |
+| Aliquot workflow + volume | `core/aliquot.ts`, `routes/samples.ts` | Parent→child aliquots with parent-suffixed IDs, `sample_lineage`, `aliquot` custody events; optional per-sample quantity, conserved and deducted on aliquoting, parent depleted at zero (CoC-04, ADR-0006). |
+| Derivation + pooling + measurements | `core/derivation.ts`, `core/measurement.ts` | Derive a new material type from one parent and pool many parents into one, both audited in `sample_lineage` with matching custody events (ADR-0014); freeze-thaw counts and concentration on the specimen (ADR-0013). |
+| Shipments with custody handoff | `core/shipment.ts`, `routes/shipments.ts` | Pack → ship → receive a batch site→central; per-phase `transfer` custody events, in-transit state, send/receive separation of duties (CoC-06, ADR-0007). |
+| Collection kits | `core/kit.ts`, `routes/kits.ts` | Assemble → ship → deliver empty-container kits to a site with contents and an audited lifecycle (ADR-0011). Kit→collected-sample linkage and par-level inventory deferred. |
+| Bulk accessioning + freezer map | `core/bulk.ts`, `routes/studies.ts` | Count-based batch accession (shared fields), optional sequential box-fill (CoC-01/03); study-scoped freezer-map grid with capacity, now click-to-place and move with a storage_remove/add custody trail (ADR-0008, ADR-0015). |
+| CSV manifest import | `core/manifest.ts`, `routes/samples.ts` | Heterogeneous per-row accession (subject/type/collection time) from a CSV, validated server-side, all-or-nothing with a per-row error report (ADR-0012). Column mapping and dry-run preview deferred. |
+| Consent-withdrawal holds + disposal | `core/hold.ts`, `routes/holds.ts` | Hold a sample or a whole subject, propagated to lineage descendants; blocks store/aliquot/ship; releasable to the prior status; terminal, supervisor-only disposal (CoC-05, ADR-0009). Result-entry block and EDC-driven propagation deferred. |
+| Reporting + CSV export | `core/reports.ts`, `routes/reports.ts` | Study-scoped inventory counts (status/type/site), collection→receipt and receipt→storage turnaround metrics, and a PHI-free sample-manifest CSV (ADR-0010). Assay turnaround, trend charts, and ad-hoc query deferred. |
 | 2D barcode / label | `packages/labels` (bwip-js) | DataMatrix + human-readable accession ID, served as PNG. |
 | Freezer storage | `routes/storage.ts`, `core/storage.ts` | facility→freezer→shelf→rack→box hierarchy, position allocation, **one-occupant-per-position** constraint, temperature on units. |
 | Chain of custody | `custody_event` + triggers | Append-only events; collection/receipt/storage/transfer/aliquot/hold/disposal types (some reserved). |
@@ -69,12 +77,6 @@ The data model or enum values exist so a future build won't have to migrate an
 append-only table, but there is no logic or UI. A buyer should read these as
 "architected for, months out," not "available."
 
-- **Aliquot / derivation trees.** `sample_lineage` exists (aliquot/derivation/
-  pool); no aliquoting workflow, and **no volume/quantity/concentration fields
-  on `sample`** — a hard requirement for real biobanking.
-- **Consent-withdrawal holds (CoC-05).** `on_hold`/`disposed` statuses and
-  `hold`/`hold_release`/`disposal` custody types are reserved; the propagation
-  logic from EDC is roadmap.
 - **Analytical module.** Test specifications/acceptance criteria, calculated
   results, worksheets, QC samples (blanks/spikes/duplicates/controls), and
   Certificate of Analysis generation are designed in `plan.md` but absent from
@@ -86,10 +88,14 @@ None of the following exist in the repository yet. This is the real distance to
 "production LIMS," listed so it can be prioritized rather than discovered.
 
 **Biobank depth**
-- Aliquot volume/quantity tracking and freeze-thaw cycle counts
-- Kits and inbound/outbound shipments with custody handoff
-- Bulk / batch accessioning and plate/rack (grid) operations
-- Freezer-map visualization and capacity dashboards
+- Multi-level lineage-graph visualization and proportional pooling ratios
+  (aliquot volume/quantity, freeze-thaw counts, concentration, single-parent
+  derivation, and many-parent pooling are now built — Tier 1)
+- Kit → collected-sample linkage and par-level kit inventory (assemble → ship →
+  deliver collection kits and sample-bearing shipments are now built — Tier 1)
+- Drag-and-drop and multi-select map moves (count-based bulk accession, a
+  freezer map with click-to-place/move, and CSV/manifest import are now built —
+  Tier 1)
 - Sample request, reservation, and distribution workflows
 - Reagent/consumable **inventory and lot/expiry** tracking
 
@@ -106,7 +112,9 @@ None of the following exist in the repository yet. This is the real distance to
 - Data import/export and an integration API for EDC/CTMS and external systems
 
 **Operations & platform**
-- Reporting, dashboards, turnaround-time and inventory analytics, ad-hoc query
+- Dashboards, trend/time-series analytics, and ad-hoc query (basic inventory
+  counts, turnaround-time metrics, and a manifest CSV export are now built —
+  Tier 1)
 - Notifications/alerts; temperature-excursion monitoring
 - Configurable workflow / status state-machine (no-code)
 - Document/SOP management and content-addressed WORM attachments (in `plan.md`,
@@ -142,15 +150,27 @@ quarter."
 If the goal is to run a sponsor's or CRO's biospecimen management, the shortest path to a
 usable pilot — in rough priority order:
 
-1. **Aliquot workflow + volume/quantity fields.** Without volumes and aliquot
-   trees, you cannot manage real inventory. Highest leverage.
-2. **Kits & shipments with custody handoff.** Trials collect at sites and ship
-   to a central lab; this is table stakes.
-3. **Bulk accessioning + freezer-map UI.** Throughput and usability.
-4. **Consent-withdrawal holds (CoC-05).** Finish the reserved control; it is a
-   real regulatory obligation, not a nice-to-have.
-5. **Reporting/exports.** Inventory counts, turnaround time, and a sample
-   manifest export are the first things a study team will ask for.
+1. ~~**Aliquot workflow + volume/quantity fields.**~~ **Done** (Tier 1, CoC-04,
+   ADR-0006): parent→child aliquots with conserved volume, freeze-thaw counts
+   and concentration (ADR-0013), and single-parent derivation + many-parent
+   pooling (ADR-0014). Deeper lineage-graph visualization still open.
+2. ~~**Kits & shipments with custody handoff.**~~ **Done** (Tier 1, CoC-06,
+   ADR-0007/0011): pack → ship → receive site→central with an unbroken custody
+   trail, plus assemble → ship → deliver collection kits (outbound empty
+   containers). Kit→collected-sample linkage still open.
+3. ~~**Bulk accessioning + freezer-map UI.**~~ **Done** (Tier 1, ADR-0008/0012):
+   count-based batch accession with optional box-fill, a read-only study-scoped
+   freezer map with capacity, CSV/manifest import, and click-to-place/move on
+   the map (ADR-0015). True drag-and-drop still open.
+4. ~~**Consent-withdrawal holds (CoC-05).**~~ **Done** (Tier 1, CoC-05,
+   ADR-0009): hold a sample or a whole subject with lineage propagation, block
+   store/aliquot/ship, release to the prior status, and a terminal
+   supervisor-only disposal. Result-entry block and EDC-driven propagation
+   still open.
+5. ~~**Reporting/exports.**~~ **Done** (Tier 1, ADR-0010): study-scoped
+   inventory counts, collection→receipt / receipt→storage turnaround metrics,
+   and a PHI-free sample-manifest CSV. Assay turnaround, dashboards, and ad-hoc
+   query still open.
 6. **Reagent/lot inventory.** Needed once real assays run.
 
 Each should land with the same discipline the slice already shows: a schema
