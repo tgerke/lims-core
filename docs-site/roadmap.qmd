@@ -1,0 +1,66 @@
+---
+title: "Roadmap and status"
+---
+
+lims-core is at its first end-to-end milestone: a thin but genuinely
+front-to-back vertical slice on a production-shaped compliance core. This page
+is the honest summary of what that means. The full, code-checked gap analysis
+is the
+[completeness review](https://github.com/tgerke/lims-core/blob/main/docs/completeness-review.md);
+the architecture and build plan are in
+[plan.md](https://github.com/tgerke/lims-core/blob/main/docs/plan.md).
+
+## Where the line is
+
+lims-core today does one workflow — accession, store, order, result, verify,
+sign, audit — and does it the way a modern auditable system should: the audit
+trail, e-signatures, chain of custody, and least-privilege enforcement live in
+the database as triggers and roles, not in application code a bug could bypass.
+
+It is **not** a production system for running a regulated trial biobank, and
+**not** a drop-in replacement for a large commercial LIMS platform. Those
+products carry an enormous functional surface — biobanking depth, stability
+studies, electronic lab notebooks, dashboards, no-code workflow designers, broad
+instrument integration — and lims-core implements a single narrow workflow. The
+honest framing is an open, modern nucleus you can grow into that kind of
+platform, not a replacement you can install next quarter.
+
+## Working today
+
+Specimen accession, 2D barcode labels, freezer storage with a
+one-occupant-per-position constraint, an append-only chain of custody, test
+ordering, versioned four-eyes results, re-authenticated e-signatures, a
+hash-chained per-study audit trail, grant-based access control, OIDC and local
+authentication, and database-enforced immutability — all covered by tests that
+run against a real Postgres in CI.
+
+## Designed and reserved, not built
+
+The data model reserves the enum values and lineage structure these will need,
+so a future build won't have to migrate an append-only table — but there is no
+logic or UI yet:
+
+- Aliquot and derivation trees, and volume/quantity/concentration on samples.
+- Consent-withdrawal holds and disposal, propagated from the EDC.
+- The analytical module: test specifications and acceptance criteria,
+  calculated results, worksheets, QC samples, and certificate-of-analysis
+  generation.
+
+## Not started
+
+The real distance to a production LIMS, listed so it can be prioritized rather
+than discovered: kits and shipments with custody handoff, bulk accessioning and
+plate/rack operations, freezer-map visualization, sample request and
+distribution workflows, reagent and lot inventory, instrument registry and
+result capture, reporting and dashboards, a configurable workflow state machine,
+document/SOP management, and a formal validation package.
+
+## Shortest path to a pilot
+
+If the goal is to run a sponsor's or CRO's biospecimen management, the highest-
+leverage next steps, in rough order: aliquot workflow with volume fields; kits
+and shipments with custody handoff; bulk accessioning and a freezer-map UI;
+consent-withdrawal holds; reporting and manifest exports; then reagent and lot
+inventory. Each should land with the discipline the slice already shows — a
+schema change plus an ADR, requirement IDs in column comments, and a compliance
+test for any new regulated behavior.

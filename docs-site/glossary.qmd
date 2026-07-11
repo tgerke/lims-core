@@ -1,0 +1,55 @@
+---
+title: "Glossary"
+---
+
+The biobank and system terms used throughout these docs, defined once.
+
+**Accession** — to register a specimen into the system, assigning it a
+per-study accession ID and opening its chain of custody. Also the ID itself.
+
+**Analysis service** — a named test in the catalog, with a code and a unit
+(for example, PSA in ng/mL). Ordering one against a specimen creates a request.
+
+**Append-only** — a table that accepts inserts but rejects updates and deletes.
+The audit trail, custody events, results, and signatures are all append-only,
+enforced by database triggers.
+
+**Chain of custody** — the immutable, ordered record of what happened to a
+specimen physically: collection, receipt, storage, transfer, and (reserved for
+later) aliquoting, holds, and disposal.
+
+**Custody event** — one immutable row in the chain of custody, carrying its
+study reference directly so it can be scoped without a join.
+
+**DataMatrix** — the 2D barcode encoded on each specimen label, alongside the
+human-readable accession ID.
+
+**E-signature meaning** — the statement of what a signature attests to,
+recorded with the signature (21 CFR Part 11 §11.50).
+
+**Four-eyes** — the rule that the person who enters a result cannot verify it;
+a second, different user must. Enforced by the system, not by procedure.
+
+**Grant** — a scoped assignment of a role to a user for a specific study (and
+optionally a single site). Users have no standing authority without one.
+
+**Hash chain** — the audit trail's tamper-evidence mechanism: each event stores
+a hash of its contents plus the previous event's hash, so altering any past
+event breaks every event after it.
+
+**OIDC** — OpenID Connect, the single-sign-on protocol used for authentication.
+An OIDC-only account still needs a local password to sign results.
+
+**Requirement ID** — an identifier like `P11-09` or `CoC-02` tying a regulatory
+requirement to the code that enforces it and the test that proves it, tracked in
+the traceability matrix.
+
+**Step-up authentication** — re-verifying identity at a sensitive moment
+(here, re-entering a password to sign) even within a live session.
+
+**Subject reference** — the EDC subject key and study-event OID a specimen was
+collected against. A pointer only; no patient health information enters the LIMS.
+
+**Vertical slice** — one workflow built all the way through every architectural
+layer, front to back, rather than one layer built broadly. lims-core's current
+milestone is a single vertical slice.

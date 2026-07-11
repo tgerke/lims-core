@@ -1,0 +1,50 @@
+---
+title: "Compliance"
+---
+
+Every compliance claim here traces to a behavior enforced in the database and an
+automated test that proves it. Each test cites its requirement ID; the full
+mapping is in the
+[regulatory traceability matrix](https://github.com/tgerke/lims-core/blob/main/docs/regulatory-traceability.md).
+
+::: {.callout-important}
+## The grounding rule
+
+This project never restates a regulation from model memory. Every compliance
+claim traces to enforced behavior and a test; where source text matters, it is
+cited, not paraphrased. See the
+[project house rules](https://github.com/tgerke/lims-core/blob/main/CLAUDE.md).
+:::
+
+## Guarantees, all tested
+
+Each control below is enforced in the database and proven by a test that names
+its requirement ID.
+
+- **The audit trail cannot be altered or fabricated.** Direct `UPDATE` and
+  `DELETE` fail by trigger, and the application's runtime role cannot insert
+  audit rows at all (P11-01).
+- **A tampered event is detectable.** The hash chain fails its integrity check
+  if any past event is changed (P11-03).
+- **Results are append-only and versioned.** A correction keeps the prior value
+  and requires a reason for the change (P11-02).
+- **Signatures re-authenticate the signer.** Every signature re-verifies the
+  signer's password; a wrong password is rejected (P11-12).
+- **Signatures state their meaning and bind to the record.** The stated meaning
+  is recorded, and the signature is bound by hash to the exact result version it
+  approves (P11-06, P11-09).
+- **Signatures cannot be excised or transferred.** They are immutable, with only
+  a one-way invalidation (P11-10).
+- **Custody is immutable and complete.** Custody opens at collection and receipt,
+  and custody rows can never be updated or deleted (CoC-01, CoC-02).
+- **Access is authority-checked.** Grants are scoped to study and site, and
+  system admins hold no lab authority (P11-04).
+
+## What compliance means here, and what it doesn't
+
+These controls are properties of the schema, which is a strong foundation — but
+a validated system is a program the deploying organization runs, not a checkbox
+the software ships. Formal validation (IQ/OQ/PQ), a change-control process, and
+standard operating procedures attach to a specific installation, and they are
+out of scope for this milestone. The
+[roadmap and status](roadmap.qmd) page is honest about that distance.

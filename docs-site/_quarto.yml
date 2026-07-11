@@ -1,0 +1,52 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "lims-core"
+  description: "An open-source LIMS for clinical-trial biobanking where the audit trail, e-signatures, and chain of custody are properties of the database."
+  site-url: https://tgerke.github.io/lims-core/
+  repo-url: https://github.com/tgerke/lims-core
+  page-navigation: true
+  navbar:
+    search: true
+    left:
+      - text: "Getting started"
+        href: getting-started.qmd
+      - text: "User guide"
+        href: user-guide/index.qmd
+      - text: "Compliance"
+        href: compliance.qmd
+      - text: "Roadmap"
+        href: roadmap.qmd
+  sidebar:
+    style: docked
+    collapse-level: 2
+    contents:
+      - text: "Overview"
+        href: index.qmd
+      - getting-started.qmd
+      - section: "User guide"
+        contents:
+          - user-guide/index.qmd
+          - user-guide/accessioning.qmd
+          - user-guide/storage-and-custody.qmd
+          - user-guide/orders-and-results.qmd
+          - user-guide/signatures.qmd
+          - user-guide/audit-trail.qmd
+          - user-guide/roles.qmd
+      - compliance.qmd
+      - roadmap.qmd
+      - glossary.qmd
+
+format:
+  html:
+    theme:
+      light: flatly
+      dark: darkly
+    css: styles.css
+    toc: true
+    toc-depth: 3
+    code-copy: true
+    code-overflow: wrap
+    lightbox: true

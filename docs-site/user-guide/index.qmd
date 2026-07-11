@@ -1,0 +1,56 @@
+---
+title: "User guide"
+---
+
+This guide is for the people who handle specimens: the accessioner at the
+receiving desk, the technician at the bench, the lab manager who verifies and
+signs, and the monitor who reviews. It walks the everyday tasks — accessioning,
+storing, ordering tests, entering and signing results, reading the audit trail —
+as they look in the app, with no code.
+
+One specimen moves through the whole system, and every action you take is
+recorded as it happens. You never mark a step "done" as a separate bookkeeping
+task: registering a specimen opens its chain of custody, storing it writes a
+custody event, signing a result binds your signature to that exact result
+version. The record is a byproduct of the work, not extra work.
+
+## The workflow at a glance
+
+| Step | Who typically does it | What it produces |
+| --- | --- | --- |
+| [Accession a specimen](accessioning.qmd) | Accessioner, technician | A `sample`, a per-study accession ID, and the first custody events. |
+| [Label and store](storage-and-custody.qmd) | Accessioner, technician | A DataMatrix label and a freezer position, one specimen per position. |
+| [Order a test, enter a result](orders-and-results.qmd) | Technician | A test order and a versioned, append-only result. |
+| [Verify and e-sign](signatures.qmd) | Lab manager | A four-eyes verification and a signature bound to the result. |
+| [Review the audit trail](audit-trail.qmd) | Monitor, lab manager | A hash-chained history you can verify end to end. |
+
+: {tbl-colwidths="[34,30,36]"}
+
+Who can do what is grant-based and scoped to a study — see
+[roles and access](roles.qmd). If you want to follow along in the running app,
+[getting started](../getting-started.qmd) has the demo accounts and the order
+to switch between them.
+
+## Signing in
+
+Sign in with single sign-on (OIDC) or a local password. Access is granted per
+study and site, and your role decides what you can do. Because releasing a
+result requires re-entering a password at signing time, anyone who signs needs
+a local signing password even on a single-sign-on deployment — see
+[e-signatures](signatures.qmd).
+
+![The sign-in screen.](../images/01-login.png){.screenshot fig-alt="lims-core sign-in screen with single sign-on and username/password options"}
+
+## Where to go next
+
+- [Accessioning](accessioning.qmd) — register a specimen and open its custody.
+- [Storage and custody](storage-and-custody.qmd) — labels, freezer positions,
+  and the chain of custody.
+- [Orders and results](orders-and-results.qmd) — ordering tests and entering
+  versioned results.
+- [E-signatures](signatures.qmd) — verification, signing, and what a signature
+  binds to.
+- [The audit trail](audit-trail.qmd) — reading and verifying the record.
+- [Roles and access](roles.qmd) — who can do what, and why admins hold no lab
+  authority.
+- [Glossary](../glossary.qmd) — the biobank and system terms used throughout.

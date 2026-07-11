@@ -1,0 +1,39 @@
+---
+title: "Storage and custody"
+---
+
+Once a specimen is accessioned, the sample record brings its whole physical
+lifecycle onto one screen: a scannable label, a freezer position, and the
+running chain of custody.
+
+![A sample record: label, storage, and custody.](../images/04-sample-detail.png){.screenshot fig-alt="lims-core sample detail page showing a DataMatrix label, storage location picker, and the chain-of-custody log"}
+
+## The label
+
+Every specimen gets a **2D DataMatrix label** encoding its accession ID,
+alongside the human-readable ID for people. It is generated on demand and served
+as a PNG, so it prints from any label printer without special drivers.
+
+## Freezer storage
+
+Storage is a hierarchy: facility → freezer → shelf → rack → box → position.
+Choose a box and either name a position (positions look like `A1`) or leave it
+blank to auto-allocate the first free one. Each freezer unit carries its
+temperature, so a −80 °C freezer is distinguishable from a −20 °C one on the
+record.
+
+The database enforces **one specimen per position**: a second specimen cannot be
+booked into an occupied slot. This is a partial unique index, not an application
+check, so it holds even under concurrent stores (requirement CoC-03).
+
+## The chain of custody
+
+Every physical event appends to an immutable custody log: collection and receipt
+at accessioning, then storage, transfers, and — reserved for future workflows —
+aliquoting, holds, and disposal. Custody rows can never be updated or deleted;
+a correction is a new event, never an edit of an old one (requirement CoC-02).
+
+Because the log is append-only and scoped to the specimen's study, it is a
+complete, tamper-evident answer to "where has this specimen been, and who
+touched it?" With storage recorded, you can
+[order a test and enter a result](orders-and-results.qmd).

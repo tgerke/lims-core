@@ -1,0 +1,42 @@
+---
+title: "Orders and results"
+---
+
+With a specimen stored, you can order a test against it and record the result.
+Results are the most tightly controlled records in the system: they are
+versioned, append-only, and cannot be released by the same person who entered
+them.
+
+## Ordering a test
+
+Each study draws from a catalog of analysis services — a named test with a code
+and a unit (the demo study seeds Prostate-Specific Antigen in ng/mL, Total
+Testosterone in ng/dL, and ctDNA Yield in ng). Ordering one creates an analysis
+request against the specimen. The catalog is the same structure an analytical
+lab uses for its full test menu; here it carries the handful of tests the
+biobank workflow needs.
+
+## Entering a result
+
+Enter a value and its unit against an order. The result starts as an unverified
+version. If a result needs correcting, you do not overwrite it: entering a new
+value **adds a version**, and the server requires a reason for the change. The
+original value stays visible in the result's history forever (requirement
+P11-02).
+
+::: {.callout-note}
+"Append-only and versioned" is the whole point. A regulated result's prior
+value is never lost, and every change carries a stated reason and an
+attributed author. The result panel shows each version with its value, status,
+who entered it, and the reason.
+:::
+
+## Four-eyes verification
+
+A result follows a **four-eyes rule**: the person who enters a result cannot
+verify their own work. A lab manager reviews it and verifies, and the verifier
+must be a different user than the enterer — the system rejects a self-verify.
+Verification is what promotes a result toward release.
+
+Only a verified result can be released, and releasing it requires an
+[electronic signature](signatures.qmd).

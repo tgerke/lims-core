@@ -1,6 +1,8 @@
 node_modules/
 dist/
 coverage/
+docs-site/_site/
+docs-site/.quarto/
 *.log
 .env
 .env.*

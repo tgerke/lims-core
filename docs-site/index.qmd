@@ -1,0 +1,66 @@
+---
+title: "lims-core"
+subtitle: "A Laboratory Information Management System where the audit trail, e-signatures, and chain of custody are properties of the database."
+---
+
+lims-core is an open-source LIMS for clinical research: biospecimen and biobank
+management for trials first, on a domain-neutral core designed to also serve
+analytical labs. It is the third sibling to
+[edc-core](https://github.com/tgerke/edc-core) (Electronic Data Capture) and
+[ctms-core](https://github.com/tgerke/ctms-core) (Clinical Trial Management);
+the three are converging onto one interoperable platform.
+
+![A sample record: storage, chain of custody, DataMatrix label, and a versioned, verified, e-signed result.](images/04-sample-detail.png){.screenshot fig-alt="lims-core sample detail page showing storage location, custody events, a DataMatrix label, and a signed result"}
+
+::: {.callout-important}
+## Where this is in its life
+
+lims-core is at its first end-to-end milestone: one workflow, working
+front-to-back, on a production-shaped compliance core. It is a strong
+foundation and a working demo, **not yet a production system** for running a
+regulated biobank, and **not a drop-in replacement for a commercial LIMS**.
+The honest, detailed gap analysis is in the
+[completeness review](https://github.com/tgerke/lims-core/blob/main/docs/completeness-review.md)
+— read it before planning any deployment.
+:::
+
+## Three design commitments
+
+1. **Compliance as schema, not as feature.** The append-only audit trail is
+   hash-chained and written by database triggers; results are versioned rows
+   that can never be overwritten; signatures are cryptographically bound to
+   the exact record version they approve. The application connects as a
+   least-privilege role that cannot alter any of this — a bug or a rushed
+   hotfix has no path around the controls.
+
+2. **A domain-neutral core.** Samples, tests, results, storage, and custody
+   are modeled once. The biobank workflow ships first; the analytical-lab
+   layer (test specifications, QC, certificates of analysis) is designed as a
+   follow-on module on the same core, not a rewrite.
+
+3. **References, never PHI.** A specimen links to the EDC subject it was
+   collected from by reference only. No patient health information enters the
+   LIMS; the subject-data boundary between the siblings is architecture, not
+   configuration.
+
+## What works today
+
+One specimen travels from receipt to a signed, verifiable result: accession →
+DataMatrix label → freezer storage → test order → result entry → four-eyes
+verification → e-signature with password step-up → a hash-chained audit trail
+you can verify with one click. All of it runs front-to-back with OIDC or
+password auth and grant-based access scoped to study and site.
+
+## Where to start
+
+| If you are… | Start here |
+| --- | --- |
+| Trying the app on your machine | [Getting started](getting-started.qmd) — running locally, with seeded demo accounts. |
+| Working in the lab (or evaluating the workflow) | [User guide](user-guide/index.qmd) — the app, task by task, with screenshots. |
+| Assessing the compliance story | [Compliance](compliance.qmd) — what is enforced, and the test that proves each claim. |
+| Sizing the gap to production | [Roadmap and status](roadmap.qmd) — what exists, what is designed, what is not started. |
+
+: {tbl-colwidths="[35,65]"}
+
+lims-core is licensed **AGPL-3.0-only**. Source, decisions, and internal
+architecture docs live [on GitHub](https://github.com/tgerke/lims-core).
