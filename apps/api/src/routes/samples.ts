@@ -3,6 +3,8 @@ import {
   aliquotSample,
   bulkAccessionSamples,
   parseSampleManifest,
+  recordFreezeThaw,
+  setConcentration,
   withActor,
 } from "@lims-core/core";
 import {
@@ -19,6 +21,7 @@ import {
   accessionRequestSchema,
   aliquotRequestSchema,
   bulkAccessionSchema,
+  concentrationSchema,
   importManifestSchema,
   SAMPLE_TYPES,
 } from "@lims-core/schemas";
@@ -312,6 +315,65 @@ export const sampleRoutes: FastifyPluginAsync = async (app) => {
       return sendDomainError(reply, err);
     }
   });
+
+  // Freeze-thaw and concentration (ADR-0013): bench-handling operations that
+  // reuse sample.aliquot, scoped from the loaded sample like /aliquot.
+  app.post(
+    "/samples/:sampleId/freeze-thaw",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const { sampleId } = request.params as { sampleId: string };
+      const user = request.user;
+      if (!user) return reply.code(401).send({ error: "authentication required" });
+      const [sample] = await app.db.select().from(samples).where(eq(samples.id, sampleId)).limit(1);
+      if (!sample) return reply.code(404).send({ error: "sample not found" });
+      const allowed = await hasPermission(app.db, user.id, "sample.aliquot", {
+        studyId: sample.studyId,
+        siteId: sample.siteId,
+      });
+      if (!allowed) return reply.code(403).send({ error: "missing permission: sample.aliquot" });
+      try {
+        const updated = await withActor(app.db, { userId: user.id, label: user.username }, (tx) =>
+          recordFreezeThaw(tx, { sampleId, actorId: user.id }),
+        );
+        return updated;
+      } catch (err) {
+        return sendDomainError(reply, err);
+      }
+    },
+  );
+
+  app.post(
+    "/samples/:sampleId/concentration",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const { sampleId } = request.params as { sampleId: string };
+      const user = request.user;
+      if (!user) return reply.code(401).send({ error: "authentication required" });
+      const parsed = concentrationSchema.safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: parsed.error.message });
+      const [sample] = await app.db.select().from(samples).where(eq(samples.id, sampleId)).limit(1);
+      if (!sample) return reply.code(404).send({ error: "sample not found" });
+      const allowed = await hasPermission(app.db, user.id, "sample.aliquot", {
+        studyId: sample.studyId,
+        siteId: sample.siteId,
+      });
+      if (!allowed) return reply.code(403).send({ error: "missing permission: sample.aliquot" });
+      try {
+        const updated = await withActor(app.db, { userId: user.id, label: user.username }, (tx) =>
+          setConcentration(tx, {
+            sampleId,
+            concentration: parsed.data.concentration,
+            ...(parsed.data.unit ? { unit: parsed.data.unit } : {}),
+            actorId: user.id,
+          }),
+        );
+        return updated;
+      } catch (err) {
+        return sendDomainError(reply, err);
+      }
+    },
+  );
 
   // Label PNG: DataMatrix of the accession id (ADR-0004). Membership-gated
   // like the rest of the sample record.

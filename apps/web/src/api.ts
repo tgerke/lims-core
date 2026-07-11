@@ -98,6 +98,9 @@ export interface SampleDetail {
   quantity: string | null;
   quantityUnit: string | null;
   initialQuantity: string | null;
+  freezeThawCount: number;
+  concentration: string | null;
+  concentrationUnit: string | null;
   subjectKey: string | null;
   studyEventOid: string | null;
   collectedAt: string | null;

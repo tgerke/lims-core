@@ -93,6 +93,13 @@ export const disposeRequestSchema = z
   .refine(oneTarget, oneTargetMsg);
 export type DisposeRequest = z.infer<typeof disposeRequestSchema>;
 
+// Concentration measurement (ADR-0013). Freeze-thaw takes no body.
+export const concentrationSchema = z.object({
+  concentration: z.number().nonnegative(),
+  unit: z.string().min(1).max(20).optional(),
+});
+export type ConcentrationRequest = z.infer<typeof concentrationSchema>;
+
 export const createShipmentSchema = z.object({
   destination: z.string().min(1).max(200),
   originSiteId: z.uuid().optional(),

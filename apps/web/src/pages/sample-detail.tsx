@@ -366,6 +366,101 @@ function HoldPanel({ sample }: { sample: SampleDetail }) {
   );
 }
 
+// Freeze-thaw cycles and concentration (ADR-0013): bench-handling, gated on
+// sample.aliquot, disabled once the sample is disposed or on hold.
+function MeasurementPanel({ sample }: { sample: SampleDetail }) {
+  const { permissions } = useStudy();
+  const queryClient = useQueryClient();
+  const [concentration, setConcentration] = useState("");
+  const [unit, setUnit] = useState(sample.concentrationUnit ?? "");
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["sample", sample.id] });
+
+  const freezeThaw = useMutation({
+    mutationFn: () => api(`/samples/${sample.id}/freeze-thaw`, { method: "POST", body: "{}" }),
+    onSuccess: invalidate,
+  });
+  const setConc = useMutation({
+    mutationFn: () =>
+      api(`/samples/${sample.id}/concentration`, {
+        method: "POST",
+        body: JSON.stringify({ concentration: Number(concentration), ...(unit ? { unit } : {}) }),
+      }),
+    onSuccess: () => {
+      setConcentration("");
+      invalidate();
+    },
+  });
+
+  if (!permissions.includes("sample.aliquot")) return null;
+  const locked = sample.status === "disposed" || sample.status === "on_hold";
+  const error = freezeThaw.error || setConc.error;
+
+  return (
+    <Card title="Measurements">
+      <dl className="mb-4 grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <dt className="text-xs tracking-wide text-slate-500 uppercase">Freeze-thaw cycles</dt>
+          <dd className="font-mono font-medium text-slate-800">{sample.freezeThawCount}</dd>
+        </div>
+        <div>
+          <dt className="text-xs tracking-wide text-slate-500 uppercase">Concentration</dt>
+          <dd className="font-mono font-medium text-slate-800">
+            {sample.concentration !== null
+              ? `${sample.concentration}${sample.concentrationUnit ? ` ${sample.concentrationUnit}` : ""}`
+              : "—"}
+          </dd>
+        </div>
+      </dl>
+      {locked ? (
+        <p className="text-sm text-slate-500">
+          Sample is {sample.status}; measurements are locked.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          <Button
+            variant="secondary"
+            onClick={() => freezeThaw.mutate()}
+            disabled={freezeThaw.isPending}
+          >
+            Record freeze-thaw
+          </Button>
+          <form
+            onSubmit={(e: FormEvent) => {
+              e.preventDefault();
+              if (Number(concentration) >= 0 && concentration !== "") setConc.mutate();
+            }}
+            className="flex items-end gap-2"
+          >
+            <Field label="Concentration">
+              <input
+                className={inputClass}
+                type="number"
+                step="any"
+                min="0"
+                value={concentration}
+                onChange={(e) => setConcentration(e.target.value)}
+                placeholder="25.4"
+              />
+            </Field>
+            <Field label="Unit">
+              <input
+                className={`${inputClass} max-w-24`}
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                placeholder="ng/µL"
+              />
+            </Field>
+            <Button type="submit" disabled={concentration === "" || setConc.isPending}>
+              Set
+            </Button>
+          </form>
+          <ErrorNote message={error ? error.message : null} />
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function SignModal({ order, onClose }: { order: Order; onClose: () => void }) {
   const queryClient = useQueryClient();
   const [password, setPassword] = useState("");
@@ -695,6 +790,7 @@ export function SampleDetailPage() {
         <div className="space-y-6">
           <StoragePanel sample={s} />
           <AliquotPanel sample={s} />
+          <MeasurementPanel sample={s} />
           <HoldPanel sample={s} />
           <LineagePanel sample={s} />
           <CustodyTimeline sample={s} />

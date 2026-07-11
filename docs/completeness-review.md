@@ -77,10 +77,10 @@ append-only table, but there is no logic or UI. A buyer should read these as
 "architected for, months out," not "available."
 
 - **Derivation / pooling trees.** Aliquoting is now built (Tier 1, CoC-04) with
-  optional per-sample quantity. `sample_lineage` also carries `derivation` and
+  optional per-sample quantity, and freeze-thaw counts and concentration are now
+  tracked (Tier 1, ADR-0013). `sample_lineage` also carries `derivation` and
   `pool` relations, but the derivation (e.g. blood → DNA) and many-parent pooling
-  workflows are not built yet. Concentration and freeze-thaw counts are also still
-  absent.
+  workflows are not built yet.
 - **Analytical module.** Test specifications/acceptance criteria, calculated
   results, worksheets, QC samples (blanks/spikes/duplicates/controls), and
   Certificate of Analysis generation are designed in `plan.md` but absent from
@@ -92,8 +92,8 @@ None of the following exist in the repository yet. This is the real distance to
 "production LIMS," listed so it can be prioritized rather than discovered.
 
 **Biobank depth**
-- Freeze-thaw cycle counts, concentration tracking, and derivation/pooling trees
-  (aliquot volume/quantity itself is now built — Tier 1)
+- Derivation/pooling trees (aliquot volume/quantity, freeze-thaw counts, and
+  concentration tracking are now built — Tier 1)
 - Kit → collected-sample linkage and par-level kit inventory (assemble → ship →
   deliver collection kits and sample-bearing shipments are now built — Tier 1)
 - Interactive freezer-map placement (count-based bulk accession, a read-only map
@@ -153,8 +153,8 @@ If the goal is to run a sponsor's or CRO's biospecimen management, the shortest 
 usable pilot — in rough priority order:
 
 1. ~~**Aliquot workflow + volume/quantity fields.**~~ **Done** (Tier 1, CoC-04,
-   ADR-0006): parent→child aliquots with conserved volume. Follow-ons still open:
-   freeze-thaw counts, concentration, and derivation/pooling trees.
+   ADR-0006): parent→child aliquots with conserved volume, plus freeze-thaw
+   counts and concentration (ADR-0013). Derivation/pooling trees still open.
 2. ~~**Kits & shipments with custody handoff.**~~ **Done** (Tier 1, CoC-06,
    ADR-0007/0011): pack → ship → receive site→central with an unbroken custody
    trail, plus assemble → ship → deliver collection kits (outbound empty
