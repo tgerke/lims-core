@@ -221,6 +221,24 @@ export interface TurnaroundReport {
   receiptToStorage: DurationStats | null;
 }
 
+export interface KitItem {
+  containerType: string;
+  quantity: number;
+}
+
+export interface KitRow {
+  id: string;
+  kitNumber: string;
+  status: "assembled" | "shipped" | "delivered" | "cancelled";
+  destinationSite: string;
+  carrier: string | null;
+  trackingNumber: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+  items: KitItem[];
+}
+
 export interface AuditEvent {
   id: string;
   occurredAt: string;

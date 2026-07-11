@@ -96,6 +96,24 @@ export const createShipmentSchema = z.object({
 });
 export type CreateShipmentRequest = z.infer<typeof createShipmentSchema>;
 
+// Collection kits (ADR-0011): empty containers assembled and sent to a site.
+export const createKitSchema = z.object({
+  destinationSiteId: z.uuid(),
+  carrier: z.string().min(1).max(100).optional(),
+  trackingNumber: z.string().min(1).max(100).optional(),
+  notes: z.string().min(1).max(1000).optional(),
+  items: z
+    .array(
+      z.object({
+        containerType: z.string().min(1).max(100),
+        quantity: z.number().int().min(1).max(10000),
+      }),
+    )
+    .min(1)
+    .max(50),
+});
+export type CreateKitRequest = z.infer<typeof createKitSchema>;
+
 export const orderRequestSchema = z.object({
   serviceId: z.uuid(),
 });

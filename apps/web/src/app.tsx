@@ -95,6 +95,12 @@ export function AppLayout() {
                 Shipments
               </Link>
               <Link
+                to="/kits"
+                className="rounded-lg px-3 py-1.5 text-slate-600 hover:bg-slate-100 [&.active]:bg-indigo-50 [&.active]:font-medium [&.active]:text-indigo-700"
+              >
+                Kits
+              </Link>
+              <Link
                 to="/storage"
                 className="rounded-lg px-3 py-1.5 text-slate-600 hover:bg-slate-100 [&.active]:bg-indigo-50 [&.active]:font-medium [&.active]:text-indigo-700"
               >

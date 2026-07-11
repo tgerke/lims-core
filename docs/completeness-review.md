@@ -52,7 +52,8 @@ These are implemented, enforced, and covered by tests.
 | --- | --- | --- |
 | Specimen accession | `routes/samples.ts`, `core/accession.ts` | Study/site scoping, specimen typing, EDC subject/visit **reference only** (no PHI), per-study accession IDs. |
 | Aliquot workflow + volume | `core/aliquot.ts`, `routes/samples.ts` | Parent→child aliquots with parent-suffixed IDs, `sample_lineage`, `aliquot` custody events; optional per-sample quantity, conserved and deducted on aliquoting, parent depleted at zero (CoC-04, ADR-0006). |
-| Shipments with custody handoff | `core/shipment.ts`, `routes/shipments.ts` | Pack → ship → receive a batch site→central; per-phase `transfer` custody events, in-transit state, send/receive separation of duties (CoC-06, ADR-0007). Collection kits not yet built. |
+| Shipments with custody handoff | `core/shipment.ts`, `routes/shipments.ts` | Pack → ship → receive a batch site→central; per-phase `transfer` custody events, in-transit state, send/receive separation of duties (CoC-06, ADR-0007). |
+| Collection kits | `core/kit.ts`, `routes/kits.ts` | Assemble → ship → deliver empty-container kits to a site with contents and an audited lifecycle (ADR-0011). Kit→collected-sample linkage and par-level inventory deferred. |
 | Bulk accessioning + freezer map | `core/bulk.ts`, `routes/studies.ts` | Count-based batch accession (shared fields), optional sequential box-fill (CoC-01/03); read-only, study-scoped freezer-map grid with capacity (ADR-0008). CSV import and interactive placement deferred. |
 | Consent-withdrawal holds + disposal | `core/hold.ts`, `routes/holds.ts` | Hold a sample or a whole subject, propagated to lineage descendants; blocks store/aliquot/ship; releasable to the prior status; terminal, supervisor-only disposal (CoC-05, ADR-0009). Result-entry block and EDC-driven propagation deferred. |
 | Reporting + CSV export | `core/reports.ts`, `routes/reports.ts` | Study-scoped inventory counts (status/type/site), collection→receipt and receipt→storage turnaround metrics, and a PHI-free sample-manifest CSV (ADR-0010). Assay turnaround, trend charts, and ad-hoc query deferred. |
@@ -92,8 +93,8 @@ None of the following exist in the repository yet. This is the real distance to
 **Biobank depth**
 - Freeze-thaw cycle counts, concentration tracking, and derivation/pooling trees
   (aliquot volume/quantity itself is now built — Tier 1)
-- Collection kits sent to sites (sample-bearing shipments with custody handoff
-  are now built — Tier 1)
+- Kit → collected-sample linkage and par-level kit inventory (assemble → ship →
+  deliver collection kits and sample-bearing shipments are now built — Tier 1)
 - CSV/manifest bulk import and interactive freezer-map placement (count-based
   bulk accession and a read-only map with capacity are now built — Tier 1)
 - Sample request, reservation, and distribution workflows
@@ -153,9 +154,10 @@ usable pilot — in rough priority order:
 1. ~~**Aliquot workflow + volume/quantity fields.**~~ **Done** (Tier 1, CoC-04,
    ADR-0006): parent→child aliquots with conserved volume. Follow-ons still open:
    freeze-thaw counts, concentration, and derivation/pooling trees.
-2. ~~**Kits & shipments with custody handoff.**~~ **Shipments done** (Tier 1,
-   CoC-06, ADR-0007): pack → ship → receive site→central with an unbroken
-   custody trail. Collection kits (outbound empty containers) still open.
+2. ~~**Kits & shipments with custody handoff.**~~ **Done** (Tier 1, CoC-06,
+   ADR-0007/0011): pack → ship → receive site→central with an unbroken custody
+   trail, plus assemble → ship → deliver collection kits (outbound empty
+   containers). Kit→collected-sample linkage still open.
 3. ~~**Bulk accessioning + freezer-map UI.**~~ **Done** (Tier 1, ADR-0008):
    count-based batch accession with optional box-fill, plus a read-only,
    study-scoped freezer map with capacity. CSV import and interactive placement

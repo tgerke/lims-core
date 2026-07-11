@@ -1,4 +1,10 @@
-import { accessionSample, bulkAccessionSamples, createShipment, withActor } from "@lims-core/core";
+import {
+  accessionSample,
+  bulkAccessionSamples,
+  createKit,
+  createShipment,
+  withActor,
+} from "@lims-core/core";
 import {
   analysisServices,
   createDb,
@@ -194,6 +200,20 @@ async function main() {
         originSiteId: site.id,
         carrier: "World Courier",
         sampleIds: packed.map((s) => s.id),
+        actorId: byUsername("tchen"),
+      });
+
+      // A collection kit assembled for the site (empty containers, CoC-agnostic).
+      await createKit(tx, {
+        studyId: study.id,
+        studyOid: study.oid,
+        destinationSiteId: site.id,
+        carrier: "World Courier",
+        items: [
+          { containerType: "EDTA tube (10 mL)", quantity: 20 },
+          { containerType: "Serum separator tube", quantity: 20 },
+          { containerType: "Cryovial (2 mL)", quantity: 50 },
+        ],
         actorId: byUsername("tchen"),
       });
 

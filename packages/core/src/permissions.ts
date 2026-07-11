@@ -8,6 +8,7 @@ export const PERMISSIONS = [
   "sample.dispose",
   "shipment.send",
   "shipment.receive",
+  "kit.manage",
   "order.create",
   "result.enter",
   "result.verify",
