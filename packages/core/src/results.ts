@@ -2,6 +2,7 @@ import { analysisRequests, results } from "@lims-core/db";
 import { desc, eq } from "drizzle-orm";
 import type { Tx } from "./actor.js";
 import { DomainError } from "./errors.js";
+import { assertOrderRunInControl } from "./qc-gate.js";
 import { activeSpec, evaluate } from "./specification.js";
 
 export async function currentResult(tx: Tx, requestId: string) {
@@ -29,6 +30,8 @@ export interface EnterResultInput {
   value: string;
   unit?: string;
   reasonForChange?: string;
+  // 'measured' (default) or 'calculated' when computed from a formula (ADR-0020).
+  source?: "measured" | "calculated";
   enteredBy: string;
 }
 
@@ -59,6 +62,7 @@ export async function enterResult(tx: Tx, input: EnterResultInput) {
       unit: input.unit ?? null,
       status: "entered",
       qcStatus,
+      source: input.source ?? "measured",
       reasonForChange: current ? (input.reasonForChange ?? null) : null,
       enteredBy: input.enteredBy,
     })
@@ -99,6 +103,8 @@ export async function verifyResult(tx: Tx, input: VerifyResultInput) {
       403,
     );
   }
+  // A result on an out-of-control run cannot be released until QC is resolved (ADR-0021).
+  await assertOrderRunInControl(tx, input.requestId);
   const [row] = await tx
     .insert(results)
     .values({
@@ -109,6 +115,7 @@ export async function verifyResult(tx: Tx, input: VerifyResultInput) {
       unit: current.unit,
       status: "verified",
       qcStatus: current.qcStatus,
+      source: current.source,
       reasonForChange: "verification",
       enteredBy: input.verifiedBy,
     })

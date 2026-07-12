@@ -4,6 +4,7 @@ import {
   recordReagentUse,
   startWorksheet,
   withActor,
+  worksheetControlStatus,
 } from "@lims-core/core";
 import {
   analysisRequests,
@@ -213,7 +214,11 @@ export const worksheetRoutes: FastifyPluginAsync = async (app) => {
       .where(eq(qcMeasurements.worksheetId, worksheetId))
       .orderBy(desc(qcMeasurements.createdAt));
 
-    return { ...worksheet, items: withResults, reagents, qcMeasurements: qc };
+    // Run-level QC control status (ADR-0021): out_of_control blocks releasing
+    // results for this run's orders until the failing control is re-run.
+    const controlStatus = await worksheetControlStatus(app.db, worksheetId);
+
+    return { ...worksheet, items: withResults, reagents, qcMeasurements: qc, controlStatus };
   });
 
   async function guardManage(worksheetId: string, userId: string) {

@@ -119,6 +119,7 @@ export interface ResultVersion {
   unit: string | null;
   status: "entered" | "verified";
   qcStatus: "pass" | "out_of_spec" | "not_evaluated";
+  source: "measured" | "calculated";
   reasonForChange: string | null;
   enteredBy: string;
   createdAt: string;
@@ -146,6 +147,14 @@ export interface Signature {
   invalidatedAt: string | null;
 }
 
+export interface Certificate {
+  id: string;
+  coaNumber: string;
+  contentHash: string;
+  issuedAt: string;
+  issuedBy: string;
+}
+
 export interface Order {
   id: string;
   status: "ordered" | "resulted" | "verified" | "signed" | "cancelled";
@@ -154,6 +163,7 @@ export interface Order {
   serviceName: string;
   serviceUnit: string | null;
   requestedBy: string;
+  calculated: boolean;
   results: ResultVersion[];
   signatures: Signature[];
 }
@@ -365,6 +375,7 @@ export interface WorksheetDetail {
   items: WorksheetItem[];
   reagents: WorksheetReagentUse[];
   qcMeasurements: QcMeasurement[];
+  controlStatus: "in_control" | "out_of_control" | "no_qc";
 }
 
 export interface AuditEvent {
