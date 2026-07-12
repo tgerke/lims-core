@@ -3,6 +3,7 @@ export * from "./actor.js";
 export * from "./aliquot.js";
 export * from "./audit.js";
 export * from "./bulk.js";
+export * from "./calculation.js";
 export * from "./custody.js";
 export * from "./derivation.js";
 export * from "./errors.js";

@@ -8,7 +8,7 @@ import {
   users,
 } from "@lims-core/db";
 import { orderRequestSchema } from "@lims-core/schemas";
-import { asc, desc, eq } from "drizzle-orm";
+import { asc, desc, eq, sql } from "drizzle-orm";
 import type { FastifyPluginAsync } from "fastify";
 import { requireAuth } from "../auth/plugin.js";
 import { hasPermission, isStudyMember } from "../auth/rbac.js";
@@ -89,6 +89,8 @@ export const orderRoutes: FastifyPluginAsync = async (app) => {
         serviceName: analysisServices.name,
         serviceUnit: analysisServices.unit,
         requestedBy: users.username,
+        // Whether the service computes its result from a formula (ADR-0020).
+        calculated: sql<boolean>`EXISTS (SELECT 1 FROM analysis_calculation ac WHERE ac.service_id = ${analysisRequests.serviceId} AND ac.active)`,
       })
       .from(analysisRequests)
       .innerJoin(analysisServices, eq(analysisRequests.serviceId, analysisServices.id))
@@ -106,6 +108,7 @@ export const orderRoutes: FastifyPluginAsync = async (app) => {
             unit: results.unit,
             status: results.status,
             qcStatus: results.qcStatus,
+            source: results.source,
             reasonForChange: results.reasonForChange,
             enteredBy: users.username,
             createdAt: results.createdAt,

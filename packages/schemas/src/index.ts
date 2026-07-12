@@ -253,6 +253,30 @@ export const recordQcMeasurementSchema = z.object({
 });
 export type RecordQcMeasurementRequest = z.infer<typeof recordQcMeasurementSchema>;
 
+// Calculated results (ADR-0020): a formula over input analytes on the same
+// sample. Variable names match identifiers the expression may reference.
+export const createCalculationSchema = z.object({
+  expression: z.string().min(1).max(500),
+  inputs: z
+    .array(
+      z.object({
+        variable: z
+          .string()
+          .min(1)
+          .max(50)
+          .regex(/^[A-Za-z_]\w*$/, "variable must be a valid identifier"),
+        serviceId: z.uuid(),
+      }),
+    )
+    .min(1)
+    .max(20),
+});
+export type CreateCalculationRequest = z.infer<typeof createCalculationSchema>;
+
+export const computeCalculationSchema = z
+  .object({ reasonForChange: z.string().min(1).max(1000).optional() })
+  .optional();
+
 export const resultEntrySchema = z.object({
   value: z.string().min(1),
   unit: z.string().min(1).optional(),

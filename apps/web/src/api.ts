@@ -119,6 +119,7 @@ export interface ResultVersion {
   unit: string | null;
   status: "entered" | "verified";
   qcStatus: "pass" | "out_of_spec" | "not_evaluated";
+  source: "measured" | "calculated";
   reasonForChange: string | null;
   enteredBy: string;
   createdAt: string;
@@ -154,6 +155,7 @@ export interface Order {
   serviceName: string;
   serviceUnit: string | null;
   requestedBy: string;
+  calculated: boolean;
   results: ResultVersion[];
   signatures: Signature[];
 }

@@ -669,8 +669,18 @@ function OrderCard({ order }: { order: Order }) {
     mutationFn: () => api(`/orders/${order.id}/verify`, { method: "POST", body: "{}" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
   });
+  const calculate = useMutation({
+    mutationFn: () => api(`/orders/${order.id}/calculate`, { method: "POST", body: "{}" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
+  });
 
+  // A calculated order (ADR-0020) is computed from a formula, not hand-entered.
+  const canCompute =
+    order.calculated &&
+    permissions.includes("result.enter") &&
+    (order.status === "ordered" || order.status === "resulted");
   const canEnter =
+    !order.calculated &&
     permissions.includes("result.enter") &&
     (order.status === "ordered" || order.status === "resulted");
   const canVerify = permissions.includes("result.verify") && order.status === "resulted";
@@ -683,6 +693,11 @@ function OrderCard({ order }: { order: Order }) {
           <p className="font-medium text-slate-900">
             {order.serviceCode}
             <span className="font-normal text-slate-500"> — {order.serviceName}</span>
+            {order.calculated && (
+              <span className="ml-2 rounded bg-indigo-50 px-1.5 py-0.5 text-xs font-medium text-indigo-700">
+                calculated
+              </span>
+            )}
           </p>
           <p className="text-xs text-slate-500">
             ordered {formatDateTime(order.createdAt)} by {order.requestedBy}
@@ -742,8 +757,17 @@ function OrderCard({ order }: { order: Order }) {
       ))}
 
       {canEnter && <ResultEntry order={order} />}
-      {(canVerify || canSign) && (
+      {(canCompute || canVerify || canSign) && (
         <div className="mt-3 flex gap-2">
+          {canCompute && (
+            <Button
+              variant="secondary"
+              onClick={() => calculate.mutate()}
+              disabled={calculate.isPending}
+            >
+              {order.results.length > 0 ? "Recalculate" : "Calculate result"}
+            </Button>
+          )}
           {canVerify && (
             <Button variant="secondary" onClick={() => verify.mutate()} disabled={verify.isPending}>
               Verify result
@@ -752,7 +776,7 @@ function OrderCard({ order }: { order: Order }) {
           {canSign && <Button onClick={() => setShowSign(true)}>Sign result…</Button>}
         </div>
       )}
-      <ErrorNote message={verify.error ? verify.error.message : null} />
+      <ErrorNote message={verify.error?.message ?? calculate.error?.message ?? null} />
 
       {showSign && <SignModal order={order} onClose={() => setShowSign(false)} />}
     </div>

@@ -5,6 +5,7 @@ import {
   integer,
   numeric,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   unique,
@@ -48,6 +49,40 @@ export const analysisSpecifications = pgTable(
   (t) => [index("analysis_specification_service_lookup").on(t.serviceId)],
 );
 
+// A formula computing a service's result from other services on the same
+// sample (ADR-0020). Superseded, never edited, like analysis_specification.
+export const analysisCalculations = pgTable(
+  "analysis_calculation",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    serviceId: uuid("service_id")
+      .notNull()
+      .references(() => analysisServices.id),
+    expression: text("expression").notNull(),
+    active: boolean("active").notNull().default(true),
+    effectiveFrom: timestamp("effective_from", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("analysis_calculation_service_lookup").on(t.serviceId)],
+);
+
+export const analysisCalculationInputs = pgTable(
+  "analysis_calculation_input",
+  {
+    calculationId: uuid("calculation_id")
+      .notNull()
+      .references(() => analysisCalculations.id),
+    variable: text("variable").notNull(),
+    inputServiceId: uuid("input_service_id")
+      .notNull()
+      .references(() => analysisServices.id),
+  },
+  (t) => [primaryKey({ columns: [t.calculationId, t.variable] })],
+);
+
 export const analysisRequests = pgTable(
   "analysis_request",
   {
@@ -86,6 +121,7 @@ export const results = pgTable(
     unit: text("unit"),
     status: text("status").notNull(),
     qcStatus: text("qc_status").notNull().default("not_evaluated"),
+    source: text("source").notNull().default("measured"),
     reasonForChange: text("reason_for_change"),
     enteredBy: uuid("entered_by")
       .notNull()
