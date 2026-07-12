@@ -57,4 +57,9 @@ pnpm dev                                                # api :3001, web :5174
 ```
 
 `pnpm check` = lint + typecheck + test. The compliance tests need a real
-Postgres (they connect as both the owner and `lims_app`).
+Postgres (they connect as both the owner and `lims_app`). The suite runs
+against a dedicated `lims_test` database, not the dev `lims` one — the test
+setup (`apps/api/vitest.config.ts` + `src/test-global-setup.ts`) creates and
+migrates it automatically, so a test run never leaves cruft in your dev data.
+Regulated rows are append-only and can't be torn down, so this isolation is how
+the dev DB stays clean. Override the target with `TEST_DATABASE_URL`.

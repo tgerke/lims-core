@@ -23,10 +23,11 @@ jobs:
           --health-timeout 3s
           --health-retries 10
     env:
+      # The suite derives a dedicated lims_test database from this URL and
+      # creates + migrates it in the setup step (apps/api/vitest.config.ts),
+      # so nothing writes to the `lims` database above. Compliance tests connect
+      # as lims_app too; migrating lims_test creates the role and its grants.
       DATABASE_URL: postgres://lims:lims-dev-only@localhost:5434/lims
-      # Compliance tests connect as lims_app too; the migration step creates
-      # the role. Runtime uses it via APP_DATABASE_URL, but tests build the
-      # server against the owner db and open lims_app connections explicitly.
     steps:
       - uses: actions/checkout@v4
 
