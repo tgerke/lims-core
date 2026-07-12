@@ -42,10 +42,13 @@ result entry (ADR-0017), and worksheets/runs that batch orders and record
 reagent-lot consumption (ADR-0018) are now built; a run's reagent draw goes
 through the same append-only inventory ledger (P11-02, above) and links to the
 exact ledger row, so run reagent usage carries no separate immutability
-guarantee — it inherits the ledger's. The rest of the analytical module (calculated results, worksheets, QC
-control samples with Westgard rules, Certificate of Analysis) is still roadmap.
-The QC verdict is a quality control, not a Part 11 requirement, so it carries no
-requirement ID. Aliquoting (CoC-04), shipment custody handoff (CoC-06),
+guarantee — it inherits the ledger's. The rest of the analytical module is now
+built too: calculated results (ADR-0020), QC control samples with single-point
+plus multi-observation Westgard rules (ADR-0019/0023), the run-level QC release
+gate (ADR-0021), and the Certificate of Analysis (ADR-0022). A QC verdict is a quality control,
+not a Part 11 requirement, so it carries no requirement ID; the immutability the
+Westgard verdicts depend on is the `qc_measurement` append-only trigger
+(ADR-0019). Aliquoting (CoC-04), shipment custody handoff (CoC-06),
 consent-withdrawal holds (CoC-05), pooling and derivation, and collection kits
 are built. A hold does not yet block result entry on an in-progress order, and
 there is no automated EDC-driven hold propagation (a coordinator places it).

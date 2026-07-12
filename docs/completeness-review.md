@@ -80,12 +80,15 @@ The data model or enum values exist so a future build won't have to migrate an
 append-only table, but there is no logic or UI. A buyer should read these as
 "architected for, months out," not "available."
 
-- **Analytical module (remainder).** Per-service acceptance criteria with
-  in-spec/out-of-spec evaluation at result entry (Tier 1, ADR-0017) and
-  worksheets/runs that batch orders and consume reagent lots (Tier 1, ADR-0018)
-  are now built. Still absent: calculated results, QC control samples
-  (blanks/spikes/duplicates/controls), Westgard-style rules, and Certificate of
-  Analysis generation.
+- **Analytical module (remainder).** Most of it is now built: per-service
+  acceptance criteria with in-spec/out-of-spec evaluation at result entry (Tier 1,
+  ADR-0017), worksheets/runs that batch orders and consume reagent lots (Tier 1,
+  ADR-0018), calculated results (ADR-0020), QC control samples with single-point
+  and multi-observation Westgard rules feeding a run-level release gate (ADR-0019/
+  0021/0023), and Certificate of Analysis generation (ADR-0022). Still absent:
+  control-type distinctions (blanks/spikes/duplicates vs. level controls), the
+  across-two-levels within-run Westgard rules (cross-level 2-2s, R-4s),
+  Levey-Jennings trending, and per-service configurable rule selection.
 
 ## Tier 3 — Not started (expected in a CRO/pharma LIMS)
 
@@ -107,13 +110,14 @@ None of the following exist in the repository yet. This is the real distance to
 
 **Analytical / QC (the commercial-LIMS parity surface)**
 - Configurable test catalog with specs, units, ranges, and calculations
-  (per-service acceptance criteria with pass/out-of-spec evaluation at result
-  entry are now built — Tier 1, ADR-0017; calculations still open)
+  (per-service acceptance criteria with pass/out-of-spec evaluation and
+  calculated results are now built — Tier 1, ADR-0017/0020)
 - Worksheets, instrument runs, QC rules and Westgard-style evaluation
-  (worksheets/runs that batch orders and record reagent-lot consumption are now
-  built — Tier 1, ADR-0018; instrument integration, QC control samples, and
-  Westgard rules still open)
-- Certificate of Analysis (PDF) generation
+  (worksheets/runs that batch orders and record reagent-lot consumption, QC
+  control samples with single-point and multi-observation Westgard rules, and a
+  run-level QC release gate are now built — Tier 1, ADR-0018/0019/0021/0023;
+  instrument integration and the cross-level within-run rules still open)
+- Certificate of Analysis (PDF) generation (now built — Tier 1, ADR-0022)
 - Stability studies and environmental monitoring
 - ELN / SDMS-style raw-data capture
 
