@@ -13,6 +13,7 @@ export * from "./kit.js";
 export * from "./manifest.js";
 export * from "./measurement.js";
 export * from "./permissions.js";
+export * from "./qc-control.js";
 export * from "./reports.js";
 export * from "./results.js";
 export * from "./shipment.js";

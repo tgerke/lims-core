@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
-import { api, type InventoryLot, type WorksheetDetail } from "../api.js";
+import { api, type ControlMaterial, type InventoryLot, type WorksheetDetail } from "../api.js";
 import { useStudy } from "../app.js";
 import {
   Button,
@@ -82,11 +82,86 @@ function AddReagentModal({ worksheetId, onClose }: { worksheetId: string; onClos
   );
 }
 
+function AddQcModal({ worksheetId, onClose }: { worksheetId: string; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const controls = useQuery({
+    queryKey: ["control-materials"],
+    queryFn: () => api<ControlMaterial[]>("/control-materials"),
+  });
+  const [controlMaterialId, setControlMaterialId] = useState("");
+  const [value, setValue] = useState("");
+
+  const record = useMutation({
+    mutationFn: () =>
+      api(`/worksheets/${worksheetId}/qc-measurements`, {
+        method: "POST",
+        body: JSON.stringify({ controlMaterialId, value: Number(value) }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["worksheet", worksheetId] });
+      onClose();
+    },
+  });
+
+  const valid = controlMaterialId !== "" && value.trim() !== "" && !Number.isNaN(Number(value));
+  const materials = controls.data ?? [];
+
+  return (
+    <Modal title="Record QC measurement" onClose={onClose}>
+      <form
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault();
+          if (valid) record.mutate();
+        }}
+        className="space-y-4"
+      >
+        <Field label="Control material">
+          <select
+            className={inputClass}
+            value={controlMaterialId}
+            onChange={(e) => setControlMaterialId(e.target.value)}
+          >
+            <option value="">Choose a control…</option>
+            {materials.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.serviceCode} · {c.level} · {c.lotNumber} (mean {Number(c.targetMean)} ± SD{" "}
+                {Number(c.targetSd)})
+              </option>
+            ))}
+          </select>
+        </Field>
+        {materials.length === 0 && !controls.isLoading && (
+          <p className="text-xs text-slate-500">No control materials defined yet.</p>
+        )}
+        <Field label="Measured value">
+          <input
+            className={inputClass}
+            type="number"
+            step="any"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+          />
+        </Field>
+        <ErrorNote message={record.error ? record.error.message : null} />
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={!valid || record.isPending}>
+            Record measurement
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 export function WorksheetDetailPage() {
   const { worksheetId } = useParams({ from: "/app/worksheets/$worksheetId" });
   const { permissions } = useStudy();
   const queryClient = useQueryClient();
   const [showReagent, setShowReagent] = useState(false);
+  const [showQc, setShowQc] = useState(false);
   const ws = useQuery({
     queryKey: ["worksheet", worksheetId],
     queryFn: () => api<WorksheetDetail>(`/worksheets/${worksheetId}`),
@@ -215,9 +290,61 @@ export function WorksheetDetailPage() {
         )}
       </Card>
 
+      <Card
+        title="QC controls"
+        actions={
+          canManage && open ? (
+            <Button variant="secondary" onClick={() => setShowQc(true)}>
+              + Record measurement
+            </Button>
+          ) : undefined
+        }
+      >
+        {w.qcMeasurements.length === 0 ? (
+          <p className="py-4 text-center text-sm text-slate-500">No QC measurements recorded.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-xs tracking-wide text-slate-500 uppercase">
+                  <th className="px-3 py-2">Assay</th>
+                  <th className="px-3 py-2">Control</th>
+                  <th className="px-3 py-2">Value</th>
+                  <th className="px-3 py-2">z-score</th>
+                  <th className="px-3 py-2">Verdict</th>
+                  <th className="px-3 py-2">Recorded</th>
+                </tr>
+              </thead>
+              <tbody>
+                {w.qcMeasurements.map((m) => (
+                  <tr key={m.id} className="border-b border-slate-100">
+                    <td className="px-3 py-2.5 text-slate-600">{m.serviceCode}</td>
+                    <td className="px-3 py-2.5 text-slate-600">
+                      {m.level} · <span className="font-mono">{m.lotNumber}</span>
+                    </td>
+                    <td className="px-3 py-2.5 font-mono text-slate-700">
+                      {Number(m.value)}
+                      {m.unit ? ` ${m.unit}` : ""}
+                    </td>
+                    <td className="px-3 py-2.5 font-mono text-slate-700">
+                      {Number(m.zScore).toFixed(2)}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <StatusBadge status={m.verdict} />
+                    </td>
+                    <td className="px-3 py-2.5 text-slate-500">{formatDateTime(m.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
       {showReagent && (
         <AddReagentModal worksheetId={worksheetId} onClose={() => setShowReagent(false)} />
       )}
+      {showQc && <AddQcModal worksheetId={worksheetId} onClose={() => setShowQc(false)} />}
     </div>
   );
 }
