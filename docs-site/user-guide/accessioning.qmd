@@ -33,5 +33,22 @@ receipt — and the specimen's history begins. There is no separate "start
 tracking" action; custody opens with the specimen (requirement CoC-01).
 :::
 
-Once accessioned, the specimen is ready to be
+## Accessioning in bulk
+
+The samples list offers three faster paths for a real receiving desk, next to
+the single-specimen form:
+
+- **Bulk accession** registers a count of identical specimens in one action —
+  same study, site, type, and subject — with an option to fill sequential box
+  positions as they are created (ADR-0008). Every specimen still gets its own
+  accession ID and custody events.
+- **Import CSV** accessions a heterogeneous batch from a manifest, one row per
+  specimen with its own subject, type, and collection time. The file is
+  validated server-side and applied **all-or-nothing**: if any row is bad, the
+  whole import is rejected with a per-row error report, so a batch never lands
+  half-applied (ADR-0012).
+- **Pool** combines several parent specimens into one pooled sample, recording
+  the many-to-one lineage — see [biobank operations](biobank-operations.qmd).
+
+Once accessioned, a specimen is ready to be
 [labeled and stored](storage-and-custody.qmd).

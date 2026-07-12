@@ -1,8 +1,8 @@
 # Completeness review: lims-core vs. a CRO/pharma LIMS
 
-**Date:** 2026-07-10 · **Scope reviewed:** the code in this repository at the
-vertical-slice milestone (17 tables, the accession→store→order→result→verify→
-sign→audit workflow).
+**Date:** 2026-07-12 · **Scope reviewed:** the code in this repository after the
+biobank and analytical build-out (ADR-0006 through ADR-0024) on the original
+accession→store→order→result→verify→sign→audit slice.
 
 This is an honest gap analysis, not a sales sheet. It answers two questions a
 Contract Research Organization or pharma sponsor actually asks: *"Could this run

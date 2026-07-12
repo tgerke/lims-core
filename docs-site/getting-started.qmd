@@ -18,7 +18,7 @@ Open <http://localhost:5174> and sign in with one of the seeded demo accounts.
 
 ## Demo accounts
 
-The seed creates one study (`STUDY-001`, site `SITE-01`), a freezer hierarchy,
+The seed creates one study (`DEMO-001`, site `SITE-01`), a freezer hierarchy,
 a small test catalog, and four users:
 
 | User | Password | Role |
@@ -50,3 +50,14 @@ switching accounts where the separation of duties requires it:
 
 Every step you just performed is in that trail, attributed and hash-chained.
 The [user guide](user-guide/index.qmd) walks each screen in detail.
+
+## What else the demo seeds
+
+The seed also lands data so the wider workflows are worth clicking through
+immediately: a volume-tracked whole-blood specimen ready to
+[aliquot](user-guide/biobank-operations.qmd), a received
+[shipment](user-guide/shipments-and-kits.qmd) and a delivered collection kit, a
+[freezer box](user-guide/storage-and-custody.qmd) with real occupancy, a
+completed [worksheet run](user-guide/analytical-testing.qmd), and a PSA
+[QC control](user-guide/quality-control.qmd) with a drift that warns then
+rejects on the Levey-Jennings chart.

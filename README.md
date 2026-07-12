@@ -14,20 +14,39 @@ code.
 
 **Documentation & user guide:** <https://tgerke.github.io/lims-core/>
 
-![A sample record: storage, chain of custody, DataMatrix label, and a versioned, verified, e-signed result](docs-site/images/04-sample-detail.png)
+![A sample record: storage, aliquot and derivation actions, a DataMatrix label, and versioned, four-eyes-verified results with QC status](docs-site/images/04-sample-detail.png)
 
-> **Status:** first end-to-end milestone. A strong foundation and working demo —
-> not yet a production biobank system, and not a drop-in replacement for a
-> commercial LIMS. See the [completeness review](docs/completeness-review.md)
-> for an honest gap analysis.
+> **Status:** a broad, working build across the biobank and analytical
+> workflows, on a production-shaped compliance core — but not yet a validated
+> production system, and not a drop-in replacement for a commercial LIMS. See
+> the [completeness review](docs/completeness-review.md) for an honest,
+> code-checked gap analysis.
 
-## The vertical slice (what works today)
+## What works today
 
-Accession a specimen → print a DataMatrix label → store it in a freezer
-position → order a test → enter and verify a result (four-eyes, versioned) →
-e-sign with password step-up → review the hash-chained audit trail and confirm
-it verifies. Runs front-to-back with OIDC or password auth, grant-based RBAC
-scoped to study/site, and a per-study append-only audit chain.
+The original vertical slice — accession → DataMatrix label → freezer storage →
+order → versioned four-eyes result → password-step-up e-signature →
+hash-chained audit trail you can verify — now sits inside a much wider surface:
+
+- **Biobank operations.** Aliquot and derivation lineage with conserved
+  volume/quantity, single-parent derivation and many-parent pooling, freeze-thaw
+  counts and concentration; consent-withdrawal holds (sample- or subject-wide,
+  propagated to descendants) and terminal supervisor-only disposal.
+- **Logistics.** Shipments with a pack → ship → receive custody handoff,
+  outbound collection kits, count-based bulk accessioning, CSV manifest import,
+  and an interactive freezer map with click-to-place/move.
+- **Analytical / QC.** Per-service acceptance criteria evaluated at result
+  entry, calculated results via a safe expression engine, worksheets/runs that
+  consume reagent lots, QC control samples with single- and multi-observation
+  Westgard rules, a run-level QC release gate, Certificate-of-Analysis PDFs, and
+  a QC review board with Levey-Jennings trending.
+- **Inventory & reporting.** A lab-wide reagent/lot catalog with an append-only
+  consumption ledger, plus study-scoped inventory counts, turnaround metrics,
+  and a PHI-free manifest CSV.
+
+All of it runs front-to-back with OIDC or password auth, grant-based RBAC scoped
+to study/site, and a per-study append-only audit chain. Every regulated behavior
+lands with an ADR (`docs/adr/`) and a compliance test.
 
 ## Stack
 
@@ -52,10 +71,12 @@ Open http://localhost:5174 and sign in as `tchen` / `lims-demo-2026!`
 ## Layout
 
 ```
-apps/api          Fastify API: auth, RBAC, slice routes, compliance tests
-apps/web          React SPA: specimen list, accession, storage, results, audit
+apps/api          Fastify API: auth, RBAC, domain routes, compliance tests
+apps/web          React SPA: samples, storage, shipments, kits, inventory,
+                  worksheets, QC review, reports, audit
 packages/db       Drizzle schema + hand-written SQL migrations (triggers/roles)
-packages/core     Audited domain logic: withActor, custody, storage, results, esign
+packages/core     Audited domain logic: withActor, custody, storage, aliquots,
+                  shipments, inventory, results, QC/Westgard, esign
 packages/schemas  Zod contracts shared client + server
 packages/labels   DataMatrix + accession-ID generation (bwip-js)
 docs/             plan, ADRs, regulatory-traceability matrix

@@ -31,7 +31,13 @@ website:
           - user-guide/index.qmd
           - user-guide/accessioning.qmd
           - user-guide/storage-and-custody.qmd
+          - user-guide/biobank-operations.qmd
+          - user-guide/shipments-and-kits.qmd
           - user-guide/orders-and-results.qmd
+          - user-guide/analytical-testing.qmd
+          - user-guide/quality-control.qmd
+          - user-guide/inventory.qmd
+          - user-guide/reports.qmd
           - user-guide/signatures.qmd
           - user-guide/audit-trail.qmd
           - user-guide/roles.qmd
