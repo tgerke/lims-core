@@ -60,7 +60,8 @@ These are implemented, enforced, and covered by tests.
 | Consent-withdrawal holds + disposal | `core/hold.ts`, `routes/holds.ts` | Hold a sample or a whole subject, propagated to lineage descendants; blocks store/aliquot/ship; releasable to the prior status; terminal, supervisor-only disposal (CoC-05, ADR-0009). Result-entry block and EDC-driven propagation deferred. |
 | Reporting + CSV export | `core/reports.ts`, `routes/reports.ts` | Study-scoped inventory counts (status/type/site), collection→receipt and receipt→storage turnaround metrics, and a PHI-free sample-manifest CSV (ADR-0010). Assay turnaround, trend charts, and ad-hoc query deferred. |
 | Reagent/lot inventory | `core/inventory.ts`, `routes/inventory.ts` | Lab-wide reagent/consumable catalog, received lots with lot number/expiry/on-hand quantity, and an **append-only consumption ledger**; consumption blocks expired/quarantined/discarded lots and over-draws, depleting at zero (ADR-0016). Audited to the `global` chain; authorized on `inventory.manage` held in any study. Par-level reorder and lot→run linkage deferred. |
-| Analytical specs + QC verdict | `core/specification.ts`, `routes/specifications.ts` | Per-service acceptance criteria (numeric range or qualitative), versioned by supersession, evaluated automatically at result entry into a `pass`/`out_of_spec`/`not_evaluated` flag on the result (ADR-0017). Worksheets, QC control samples, Westgard rules, and CoA deferred. |
+| Analytical specs + QC verdict | `core/specification.ts`, `routes/specifications.ts` | Per-service acceptance criteria (numeric range or qualitative), versioned by supersession, evaluated automatically at result entry into a `pass`/`out_of_spec`/`not_evaluated` flag on the result (ADR-0017). QC control samples, Westgard rules, and CoA deferred. |
+| Worksheets/runs + reagent consumption | `core/worksheet.ts`, `routes/worksheets.ts` | Batch analysis orders into a `draft`→`in_progress`→`completed` run; recording a run's reagent use draws from a lot through the append-only inventory ledger and links `worksheet_reagent` to the exact ledger row — the seam between QC and inventory (ADR-0018). Instrument integration, QC control samples/Westgard rules, and batch result entry deferred. |
 | 2D barcode / label | `packages/labels` (bwip-js) | DataMatrix + human-readable accession ID, served as PNG. |
 | Freezer storage | `routes/storage.ts`, `core/storage.ts` | facility→freezer→shelf→rack→box hierarchy, position allocation, **one-occupant-per-position** constraint, temperature on units. |
 | Chain of custody | `custody_event` + triggers | Append-only events; collection/receipt/storage/transfer/aliquot/hold/disposal types (some reserved). |
@@ -80,8 +81,9 @@ append-only table, but there is no logic or UI. A buyer should read these as
 "architected for, months out," not "available."
 
 - **Analytical module (remainder).** Per-service acceptance criteria with
-  in-spec/out-of-spec evaluation at result entry are now built (Tier 1,
-  ADR-0017). Still absent: calculated results, worksheets, QC control samples
+  in-spec/out-of-spec evaluation at result entry (Tier 1, ADR-0017) and
+  worksheets/runs that batch orders and consume reagent lots (Tier 1, ADR-0018)
+  are now built. Still absent: calculated results, QC control samples
   (blanks/spikes/duplicates/controls), Westgard-style rules, and Certificate of
   Analysis generation.
 
@@ -108,6 +110,9 @@ None of the following exist in the repository yet. This is the real distance to
   (per-service acceptance criteria with pass/out-of-spec evaluation at result
   entry are now built — Tier 1, ADR-0017; calculations still open)
 - Worksheets, instrument runs, QC rules and Westgard-style evaluation
+  (worksheets/runs that batch orders and record reagent-lot consumption are now
+  built — Tier 1, ADR-0018; instrument integration, QC control samples, and
+  Westgard rules still open)
 - Certificate of Analysis (PDF) generation
 - Stability studies and environmental monitoring
 - ELN / SDMS-style raw-data capture

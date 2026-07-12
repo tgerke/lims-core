@@ -15,6 +15,7 @@ import { shipmentRoutes } from "./routes/shipments.js";
 import { specificationRoutes } from "./routes/specifications.js";
 import { storageRoutes } from "./routes/storage.js";
 import { studyRoutes } from "./routes/studies.js";
+import { worksheetRoutes } from "./routes/worksheets.js";
 
 export const API_VERSION = "0.1.0";
 
@@ -50,6 +51,7 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
   await server.register(storageRoutes);
   await server.register(orderRoutes);
   await server.register(specificationRoutes);
+  await server.register(worksheetRoutes);
   await server.register(resultRoutes);
   await server.register(reportRoutes);
   await server.register(auditRoutes);

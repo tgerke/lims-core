@@ -99,7 +99,9 @@ export interface ConsumeLotInput {
 /**
  * Draws `quantity` from an available lot: appends a `consumed` ledger entry,
  * decrements quantity_remaining, and marks the lot `depleted` at zero. Rejects
- * an expired, quarantined, or already-closed lot, and an over-draw.
+ * an expired, quarantined, or already-closed lot, and an over-draw. Returns the
+ * updated lot and the ledger row it created (the row is what worksheet reagent
+ * links tie to — ADR-0018).
  */
 export async function consumeLot(tx: Tx, input: ConsumeLotInput) {
   if (input.quantity <= 0) throw new DomainError("consumed quantity must be positive");
@@ -116,13 +118,17 @@ export async function consumeLot(tx: Tx, input: ConsumeLotInput) {
   }
   const newRemaining = remaining - input.quantity;
 
-  await tx.insert(inventoryTransactions).values({
-    lotId: lot.id,
-    delta: String(-input.quantity),
-    reason: "consumed",
-    note: input.note ?? null,
-    performedBy: input.actorId,
-  });
+  const [transaction] = await tx
+    .insert(inventoryTransactions)
+    .values({
+      lotId: lot.id,
+      delta: String(-input.quantity),
+      reason: "consumed",
+      note: input.note ?? null,
+      performedBy: input.actorId,
+    })
+    .returning();
+  if (!transaction) throw new Error("inventory transaction insert returned no row");
   const [updated] = await tx
     .update(inventoryLots)
     .set({
@@ -132,7 +138,7 @@ export async function consumeLot(tx: Tx, input: ConsumeLotInput) {
     })
     .where(eq(inventoryLots.id, lot.id))
     .returning();
-  return updated ?? lot;
+  return { lot: updated ?? lot, transaction };
 }
 
 export interface AdjustLotInput {

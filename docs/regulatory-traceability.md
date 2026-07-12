@@ -36,11 +36,13 @@ repo, not to a paraphrase of the regulation.
 
 ## Deferred (states reserved, logic not built)
 
-Instrument integration remains out of scope. Reagent/lot inventory (ADR-0016)
-and the first analytical slice — per-service acceptance criteria evaluated into
-a pass/out-of-spec QC verdict at result entry (ADR-0017) — are now built; the
-reagent consumption ledger is append-only under the same P11-02 guarantee
-(above). The rest of the analytical module (calculated results, worksheets, QC
+Instrument integration remains out of scope. Reagent/lot inventory (ADR-0016),
+per-service acceptance criteria evaluated into a pass/out-of-spec QC verdict at
+result entry (ADR-0017), and worksheets/runs that batch orders and record
+reagent-lot consumption (ADR-0018) are now built; a run's reagent draw goes
+through the same append-only inventory ledger (P11-02, above) and links to the
+exact ledger row, so run reagent usage carries no separate immutability
+guarantee — it inherits the ledger's. The rest of the analytical module (calculated results, worksheets, QC
 control samples with Westgard rules, Certificate of Analysis) is still roadmap.
 The QC verdict is a quality control, not a Part 11 requirement, so it carries no
 requirement ID. Aliquoting (CoC-04), shipment custody handoff (CoC-06),

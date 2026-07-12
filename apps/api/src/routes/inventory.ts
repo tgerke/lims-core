@@ -107,7 +107,7 @@ export const inventoryRoutes: FastifyPluginAsync = async (app) => {
     const parsed = consumeLotSchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: parsed.error.message });
     try {
-      const lot = await withActor(app.db, { userId: user.id, label: user.username }, (tx) =>
+      const result = await withActor(app.db, { userId: user.id, label: user.username }, (tx) =>
         consumeLot(tx, {
           lotId,
           quantity: parsed.data.quantity,
@@ -115,7 +115,7 @@ export const inventoryRoutes: FastifyPluginAsync = async (app) => {
           actorId: user.id,
         }),
       );
-      return lot;
+      return result.lot;
     } catch (err) {
       return sendDomainError(reply, err);
     }

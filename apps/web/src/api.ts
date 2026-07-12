@@ -282,6 +282,66 @@ export interface InventoryLot {
   createdAt: string;
 }
 
+export type WorksheetStatus = "draft" | "in_progress" | "completed" | "cancelled";
+
+export interface WorksheetRow {
+  id: string;
+  worksheetNumber: string;
+  status: WorksheetStatus;
+  instrument: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  itemCount: number;
+  reagentCount: number;
+}
+
+export interface OrderableOrder {
+  id: string;
+  status: string;
+  serviceCode: string;
+  serviceName: string;
+  accessionId: string;
+  sampleType: string;
+}
+
+export interface WorksheetItem {
+  requestId: string;
+  status: string;
+  serviceCode: string;
+  serviceName: string;
+  accessionId: string;
+  sampleType: string;
+  result: {
+    value: string;
+    unit: string | null;
+    qcStatus: "pass" | "out_of_spec" | "not_evaluated";
+  } | null;
+}
+
+export interface WorksheetReagentUse {
+  id: string;
+  quantity: string;
+  lotNumber: string;
+  itemName: string;
+  itemUnit: string;
+  createdAt: string;
+}
+
+export interface WorksheetDetail {
+  id: string;
+  studyId: string;
+  worksheetNumber: string;
+  status: WorksheetStatus;
+  instrument: string | null;
+  notes: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  items: WorksheetItem[];
+  reagents: WorksheetReagentUse[];
+}
+
 export interface AuditEvent {
   id: string;
   occurredAt: string;
