@@ -235,6 +235,24 @@ export const createSpecificationSchema = z
   );
 export type CreateSpecificationRequest = z.infer<typeof createSpecificationSchema>;
 
+// QC control samples (ADR-0019): a control material's established target for a
+// service, and a control measurement recorded on a run.
+export const createControlMaterialSchema = z.object({
+  level: z.string().min(1).max(50),
+  lotNumber: z.string().min(1).max(100),
+  targetMean: z.number(),
+  targetSd: z.number().positive(),
+  expiry: z.iso.date().optional(),
+  unit: z.string().min(1).max(20).optional(),
+});
+export type CreateControlMaterialRequest = z.infer<typeof createControlMaterialSchema>;
+
+export const recordQcMeasurementSchema = z.object({
+  controlMaterialId: z.uuid(),
+  value: z.number(),
+});
+export type RecordQcMeasurementRequest = z.infer<typeof recordQcMeasurementSchema>;
+
 export const resultEntrySchema = z.object({
   value: z.string().min(1),
   unit: z.string().min(1).optional(),

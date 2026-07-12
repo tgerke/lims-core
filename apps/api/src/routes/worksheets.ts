@@ -8,8 +8,10 @@ import {
 import {
   analysisRequests,
   analysisServices,
+  controlMaterials,
   inventoryItems,
   inventoryLots,
+  qcMeasurements,
   results,
   samples,
   studies,
@@ -192,7 +194,26 @@ export const worksheetRoutes: FastifyPluginAsync = async (app) => {
       .where(eq(worksheetReagents.worksheetId, worksheetId))
       .orderBy(desc(worksheetReagents.createdAt));
 
-    return { ...worksheet, items: withResults, reagents };
+    // Control measurements on the run and their Westgard verdicts (ADR-0019).
+    const qc = await app.db
+      .select({
+        id: qcMeasurements.id,
+        value: qcMeasurements.value,
+        zScore: qcMeasurements.zScore,
+        verdict: qcMeasurements.verdict,
+        level: controlMaterials.level,
+        lotNumber: controlMaterials.lotNumber,
+        unit: controlMaterials.unit,
+        serviceCode: analysisServices.code,
+        createdAt: qcMeasurements.createdAt,
+      })
+      .from(qcMeasurements)
+      .innerJoin(controlMaterials, eq(qcMeasurements.controlMaterialId, controlMaterials.id))
+      .innerJoin(analysisServices, eq(controlMaterials.serviceId, analysisServices.id))
+      .where(eq(qcMeasurements.worksheetId, worksheetId))
+      .orderBy(desc(qcMeasurements.createdAt));
+
+    return { ...worksheet, items: withResults, reagents, qcMeasurements: qc };
   });
 
   async function guardManage(worksheetId: string, userId: string) {

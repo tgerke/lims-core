@@ -328,6 +328,30 @@ export interface WorksheetReagentUse {
   createdAt: string;
 }
 
+export interface ControlMaterial {
+  id: string;
+  serviceId: string;
+  serviceCode: string;
+  serviceName: string;
+  level: string;
+  lotNumber: string;
+  targetMean: string;
+  targetSd: string;
+  unit: string | null;
+}
+
+export interface QcMeasurement {
+  id: string;
+  value: string;
+  zScore: string;
+  verdict: "accept" | "warning" | "reject";
+  level: string;
+  lotNumber: string;
+  unit: string | null;
+  serviceCode: string;
+  createdAt: string;
+}
+
 export interface WorksheetDetail {
   id: string;
   studyId: string;
@@ -340,6 +364,7 @@ export interface WorksheetDetail {
   createdAt: string;
   items: WorksheetItem[];
   reagents: WorksheetReagentUse[];
+  qcMeasurements: QcMeasurement[];
 }
 
 export interface AuditEvent {
