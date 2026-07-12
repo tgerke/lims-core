@@ -11,7 +11,7 @@ import { DomainError } from "./errors.js";
 
 // A read helper may run on the base connection (from a route) or inside a
 // transaction (from verify/sign). Both satisfy the same drizzle query surface.
-type Querier = Db | Tx;
+export type Querier = Db | Tx;
 
 export type RunControlStatus = "in_control" | "out_of_control" | "no_qc";
 

@@ -119,6 +119,12 @@ export function AppLayout() {
                 Worksheets
               </Link>
               <Link
+                to="/qc-review"
+                className="rounded-lg px-3 py-1.5 text-slate-600 hover:bg-slate-100 [&.active]:bg-indigo-50 [&.active]:font-medium [&.active]:text-indigo-700"
+              >
+                QC review
+              </Link>
+              <Link
                 to="/reports"
                 className="rounded-lg px-3 py-1.5 text-slate-600 hover:bg-slate-100 [&.active]:bg-indigo-50 [&.active]:font-medium [&.active]:text-indigo-700"
               >

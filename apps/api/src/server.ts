@@ -11,6 +11,7 @@ import { inventoryRoutes } from "./routes/inventory.js";
 import { kitRoutes } from "./routes/kits.js";
 import { orderRoutes } from "./routes/orders.js";
 import { qcControlRoutes } from "./routes/qc-controls.js";
+import { qcReviewRoutes } from "./routes/qc-review.js";
 import { reportRoutes } from "./routes/reports.js";
 import { resultRoutes } from "./routes/results.js";
 import { sampleRoutes } from "./routes/samples.js";
@@ -56,6 +57,7 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
   await server.register(specificationRoutes);
   await server.register(worksheetRoutes);
   await server.register(qcControlRoutes);
+  await server.register(qcReviewRoutes);
   await server.register(calculationRoutes);
   await server.register(coaRoutes);
   await server.register(resultRoutes);
