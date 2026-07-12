@@ -2,6 +2,7 @@ import { analysisRequests, results } from "@lims-core/db";
 import { desc, eq } from "drizzle-orm";
 import type { Tx } from "./actor.js";
 import { DomainError } from "./errors.js";
+import { assertOrderRunInControl } from "./qc-gate.js";
 import { activeSpec, evaluate } from "./specification.js";
 
 export async function currentResult(tx: Tx, requestId: string) {
@@ -102,6 +103,8 @@ export async function verifyResult(tx: Tx, input: VerifyResultInput) {
       403,
     );
   }
+  // A result on an out-of-control run cannot be released until QC is resolved (ADR-0021).
+  await assertOrderRunInControl(tx, input.requestId);
   const [row] = await tx
     .insert(results)
     .values({

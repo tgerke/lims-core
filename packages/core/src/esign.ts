@@ -3,6 +3,7 @@ import { analysisRequests, signatures } from "@lims-core/db";
 import { eq } from "drizzle-orm";
 import type { Tx } from "./actor.js";
 import { DomainError } from "./errors.js";
+import { assertOrderRunInControl } from "./qc-gate.js";
 import { currentResult } from "./results.js";
 
 /**
@@ -53,6 +54,8 @@ export async function signResult(tx: Tx, input: SignResultInput) {
   if (current?.status !== "verified") {
     throw new DomainError("no verified result to sign", 409);
   }
+  // A result on an out-of-control run cannot be signed until QC is resolved (ADR-0021).
+  await assertOrderRunInControl(tx, input.requestId);
   const [signature] = await tx
     .insert(signatures)
     .values({

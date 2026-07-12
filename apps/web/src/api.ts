@@ -367,6 +367,7 @@ export interface WorksheetDetail {
   items: WorksheetItem[];
   reagents: WorksheetReagentUse[];
   qcMeasurements: QcMeasurement[];
+  controlStatus: "in_control" | "out_of_control" | "no_qc";
 }
 
 export interface AuditEvent {

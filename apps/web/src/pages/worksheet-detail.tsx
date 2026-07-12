@@ -213,6 +213,14 @@ export function WorksheetDetailPage() {
         <ErrorNote message={start.error?.message ?? complete.error?.message ?? null} />
       </div>
 
+      {w.controlStatus === "out_of_control" && (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          <span className="font-semibold">QC out of control.</span> A control on this run rejected
+          (1-3s). Results for this run's orders can't be verified or signed until the failing
+          control is re-run within limits.
+        </div>
+      )}
+
       <Card title="Orders">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
