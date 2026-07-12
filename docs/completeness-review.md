@@ -62,6 +62,7 @@ These are implemented, enforced, and covered by tests.
 | Reagent/lot inventory | `core/inventory.ts`, `routes/inventory.ts` | Lab-wide reagent/consumable catalog, received lots with lot number/expiry/on-hand quantity, and an **append-only consumption ledger**; consumption blocks expired/quarantined/discarded lots and over-draws, depleting at zero (ADR-0016). Audited to the `global` chain; authorized on `inventory.manage` held in any study. Par-level reorder and lot→run linkage deferred. |
 | Analytical specs + QC verdict | `core/specification.ts`, `routes/specifications.ts` | Per-service acceptance criteria (numeric range or qualitative), versioned by supersession, evaluated automatically at result entry into a `pass`/`out_of_spec`/`not_evaluated` flag on the result (ADR-0017). QC control samples, Westgard rules, and CoA deferred. |
 | Worksheets/runs + reagent consumption | `core/worksheet.ts`, `routes/worksheets.ts` | Batch analysis orders into a `draft`→`in_progress`→`completed` run; recording a run's reagent use draws from a lot through the append-only inventory ledger and links `worksheet_reagent` to the exact ledger row — the seam between QC and inventory (ADR-0018). Instrument integration, QC control samples/Westgard rules, and batch result entry deferred. |
+| QC review + Levey-Jennings | `core/qc-review.ts`, `routes/qc-review.ts`, web `pages/qc-review.tsx` | Read-only, lab-wide board of active controls (latest verdict/rule/z-score, keyed on control material like the release gate) and a Levey-Jennings chart of one control's frozen measurements over time with ±1/±2/±3 SD bands and rule-annotated rejections (ADR-0024). No new writes or permission. Paging/filtering and per-point drill-in deferred. |
 | 2D barcode / label | `packages/labels` (bwip-js) | DataMatrix + human-readable accession ID, served as PNG. |
 | Freezer storage | `routes/storage.ts`, `core/storage.ts` | facility→freezer→shelf→rack→box hierarchy, position allocation, **one-occupant-per-position** constraint, temperature on units. |
 | Chain of custody | `custody_event` + triggers | Append-only events; collection/receipt/storage/transfer/aliquot/hold/disposal types (some reserved). |
@@ -85,10 +86,11 @@ append-only table, but there is no logic or UI. A buyer should read these as
   ADR-0017), worksheets/runs that batch orders and consume reagent lots (Tier 1,
   ADR-0018), calculated results (ADR-0020), QC control samples with single-point
   and multi-observation Westgard rules feeding a run-level release gate (ADR-0019/
-  0021/0023), and Certificate of Analysis generation (ADR-0022). Still absent:
+  0021/0023), Certificate of Analysis generation (ADR-0022), and a read-only QC
+  review board with Levey-Jennings trending (ADR-0024). Still absent:
   control-type distinctions (blanks/spikes/duplicates vs. level controls), the
-  across-two-levels within-run Westgard rules (cross-level 2-2s, R-4s),
-  Levey-Jennings trending, and per-service configurable rule selection.
+  across-two-levels within-run Westgard rules (cross-level 2-2s, R-4s), and
+  per-service configurable rule selection.
 
 ## Tier 3 — Not started (expected in a CRO/pharma LIMS)
 

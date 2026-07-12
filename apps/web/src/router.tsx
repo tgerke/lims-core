@@ -10,6 +10,7 @@ import { AuditTrailPage } from "./pages/audit.js";
 import { InventoryPage } from "./pages/inventory.js";
 import { KitsPage } from "./pages/kits.js";
 import { LoginPage } from "./pages/login.js";
+import { QcReviewPage } from "./pages/qc-review.js";
 import { ReportsPage } from "./pages/reports.js";
 import { SampleDetailPage } from "./pages/sample-detail.js";
 import { SamplesPage } from "./pages/samples.js";
@@ -95,6 +96,12 @@ const worksheetDetailRoute = createRoute({
   component: WorksheetDetailPage,
 });
 
+const qcReviewRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/qc-review",
+  component: QcReviewPage,
+});
+
 const reportsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/reports",
@@ -120,6 +127,7 @@ const routeTree = rootRoute.addChildren([
     inventoryRoute,
     worksheetsRoute,
     worksheetDetailRoute,
+    qcReviewRoute,
     reportsRoute,
     auditRoute,
   ]),

@@ -1,11 +1,15 @@
 import {
   accessionSample,
   bulkAccessionSamples,
+  createControlMaterial,
   createKit,
   createShipment,
+  createWorksheet,
+  recordQcMeasurement,
   withActor,
 } from "@lims-core/core";
 import {
+  analysisRequests,
   analysisServices,
   createDb,
   databaseUrl,
@@ -41,6 +45,12 @@ async function main() {
 
     const adminHash = await hashPassword(ADMIN_PASSWORD);
     const demoHash = await hashPassword(DEMO_PASSWORD);
+
+    // QC measurements must each land in their own transaction: now() is
+    // transaction-scoped, and the Westgard look-back and the Levey-Jennings
+    // chart both order by created_at, so a shared timestamp would tie. Captured
+    // here and recorded in a loop after the main seed transaction commits.
+    let qcSeed: { controlId: string; worksheetId: string; techId: string } | null = null;
 
     await withActor(db, { label: "seed-demo" }, async (tx) => {
       const [admin] = await tx
@@ -157,11 +167,15 @@ async function main() {
         .returning();
       if (!boxA) throw new Error("box insert failed");
 
-      await tx.insert(analysisServices).values([
-        { code: "PSA", name: "Prostate-Specific Antigen", unit: "ng/mL" },
-        { code: "TESTO", name: "Total Testosterone", unit: "ng/dL" },
-        { code: "CTDNA", name: "ctDNA Yield", unit: "ng" },
-      ]);
+      const [psa] = await tx
+        .insert(analysisServices)
+        .values([
+          { code: "PSA", name: "Prostate-Specific Antigen", unit: "ng/mL" },
+          { code: "TESTO", name: "Total Testosterone", unit: "ng/dL" },
+          { code: "CTDNA", name: "ctDNA Yield", unit: "ng" },
+        ])
+        .returning();
+      if (!psa) throw new Error("service insert failed");
 
       // A whole-blood specimen with a tracked volume, ready to aliquot (CoC-04).
       const demoSample = await accessionSample(tx, {
@@ -229,7 +243,54 @@ async function main() {
         storageUnitId: boxA.id,
         actorId: byUsername("tchen"),
       });
+
+      // A PSA control material and an open run to record QC on, so the QC review
+      // board and Levey-Jennings chart show real data. Measurements are recorded
+      // after commit (see qcSeed note above).
+      const psaControl = await createControlMaterial(tx, {
+        serviceId: psa.id,
+        level: "normal",
+        lotNumber: "QC-PSA-2026-04",
+        targetMean: 5.0,
+        targetSd: 0.3,
+        unit: "ng/mL",
+        actorId: byUsername("mgarcia"),
+      });
+      const [psaOrder] = await tx
+        .insert(analysisRequests)
+        .values({
+          sampleId: demoSample.id,
+          studyId: study.id,
+          serviceId: psa.id,
+          requestedBy: byUsername("tchen"),
+        })
+        .returning();
+      if (!psaOrder) throw new Error("qc order insert failed");
+      const { worksheet: qcRun } = await createWorksheet(tx, {
+        studyId: study.id,
+        studyOid: study.oid,
+        requestIds: [psaOrder.id],
+        actorId: byUsername("tchen"),
+      });
+      qcSeed = { controlId: psaControl.id, worksheetId: qcRun.id, techId: byUsername("tchen") };
     });
+
+    if (qcSeed) {
+      const { controlId, worksheetId, techId } = qcSeed;
+      // A slow upward drift (target 5.0, SD 0.3) that stays in control, warns at
+      // 1-2s, then rejects on a same-side 2-2s at the last point (ADR-0023).
+      const values = [5.05, 4.9, 5.12, 4.95, 5.18, 5.28, 5.3, 5.45, 5.66, 5.72];
+      for (const value of values) {
+        await withActor(db, { label: "seed-demo" }, (tx) =>
+          recordQcMeasurement(tx, {
+            worksheetId,
+            controlMaterialId: controlId,
+            value,
+            actorId: techId,
+          }),
+        );
+      }
+    }
 
     console.log(`seed: created study ${STUDY_OID} with site SITE-01`);
     console.log(`seed: users admin/${ADMIN_PASSWORD} (system admin + lab_admin),`);

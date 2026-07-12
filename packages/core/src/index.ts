@@ -17,6 +17,7 @@ export * from "./measurement.js";
 export * from "./permissions.js";
 export * from "./qc-control.js";
 export * from "./qc-gate.js";
+export * from "./qc-review.js";
 export * from "./reports.js";
 export * from "./results.js";
 export * from "./shipment.js";

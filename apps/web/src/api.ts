@@ -362,6 +362,50 @@ export interface QcMeasurement {
   createdAt: string;
 }
 
+export type QcVerdict = "accept" | "warning" | "reject";
+export type WestgardRule = "1-2s" | "1-3s" | "2-2s" | "4-1s" | "10-x";
+
+export interface QcControlSummary {
+  controlMaterialId: string;
+  serviceId: string;
+  serviceCode: string;
+  serviceName: string;
+  level: string;
+  lotNumber: string;
+  unit: string | null;
+  targetMean: string;
+  targetSd: string;
+  n: number;
+  latestVerdict: QcVerdict | null;
+  latestRule: WestgardRule | null;
+  latestZ: string | null;
+  latestAt: string | null;
+}
+
+export interface ControlSeriesPoint {
+  id: string;
+  value: string;
+  zScore: string;
+  verdict: QcVerdict;
+  rule: WestgardRule | null;
+  worksheetNumber: string;
+  createdAt: string;
+}
+
+export interface ControlSeries {
+  control: {
+    id: string;
+    serviceCode: string;
+    serviceName: string;
+    level: string;
+    lotNumber: string;
+    unit: string | null;
+    targetMean: string;
+    targetSd: string;
+  };
+  points: ControlSeriesPoint[];
+}
+
 export interface WorksheetDetail {
   id: string;
   studyId: string;
