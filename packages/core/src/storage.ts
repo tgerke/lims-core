@@ -93,13 +93,19 @@ export async function storeSample(tx: Tx, input: StoreInput) {
     if (!position) throw new DomainError("box is full", 409);
   }
 
+  // One application-clock timestamp for the sample update and the custody event,
+  // so storage_add.occurredAt shares the clock with sample.receivedAt (set the
+  // same way in accessionSample). Turnaround reporting subtracts the two; letting
+  // the event default to the DB clock instead mixes clocks and yields spurious
+  // negative receipt->storage durations under app/DB clock skew.
+  const now = new Date();
   const [updated] = await tx
     .update(samples)
     .set({
       storageUnitId: unit.id,
       storagePosition: position,
       status: "in_storage",
-      updatedAt: new Date(),
+      updatedAt: now,
     })
     .where(eq(samples.id, sample.id))
     .returning();
@@ -112,6 +118,7 @@ export async function storeSample(tx: Tx, input: StoreInput) {
     actorId: input.actorId,
     storageUnitId: unit.id,
     position,
+    occurredAt: now,
   });
   return updated;
 }
