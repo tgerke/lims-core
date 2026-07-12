@@ -200,6 +200,22 @@ export const orderRequestSchema = z.object({
 });
 export type OrderRequest = z.infer<typeof orderRequestSchema>;
 
+// Worksheets/runs (ADR-0018): batch orders for an instrument run and record the
+// reagent lots it consumes.
+export const createWorksheetSchema = z.object({
+  instrument: z.string().min(1).max(200).optional(),
+  notes: z.string().min(1).max(1000).optional(),
+  requestIds: z.array(z.uuid()).min(1).max(500),
+});
+export type CreateWorksheetRequest = z.infer<typeof createWorksheetSchema>;
+
+export const recordReagentSchema = z.object({
+  lotId: z.uuid(),
+  quantity: z.number().positive(),
+  note: z.string().min(1).max(1000).optional(),
+});
+export type RecordReagentRequest = z.infer<typeof recordReagentSchema>;
+
 // Analytical acceptance criteria (ADR-0017): a numeric range (a bound on either
 // side) or a qualitative expected value, never both.
 export const createSpecificationSchema = z

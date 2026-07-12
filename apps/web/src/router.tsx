@@ -16,6 +16,8 @@ import { SamplesPage } from "./pages/samples.js";
 import { ShipmentDetailPage } from "./pages/shipment-detail.js";
 import { ShipmentsPage } from "./pages/shipments.js";
 import { StoragePage } from "./pages/storage.js";
+import { WorksheetDetailPage } from "./pages/worksheet-detail.js";
+import { WorksheetsPage } from "./pages/worksheets.js";
 
 const rootRoute = createRootRoute({ component: Outlet });
 
@@ -81,6 +83,18 @@ const inventoryRoute = createRoute({
   component: InventoryPage,
 });
 
+const worksheetsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/worksheets",
+  component: WorksheetsPage,
+});
+
+const worksheetDetailRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/worksheets/$worksheetId",
+  component: WorksheetDetailPage,
+});
+
 const reportsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/reports",
@@ -104,6 +118,8 @@ const routeTree = rootRoute.addChildren([
     kitsRoute,
     storageRoute,
     inventoryRoute,
+    worksheetsRoute,
+    worksheetDetailRoute,
     reportsRoute,
     auditRoute,
   ]),

@@ -12,6 +12,7 @@ export const PERMISSIONS = [
   "inventory.manage",
   "order.create",
   "spec.manage",
+  "worksheet.manage",
   "result.enter",
   "result.verify",
   "result.sign",
