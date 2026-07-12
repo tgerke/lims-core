@@ -202,6 +202,7 @@ export const worksheetRoutes: FastifyPluginAsync = async (app) => {
         value: qcMeasurements.value,
         zScore: qcMeasurements.zScore,
         verdict: qcMeasurements.verdict,
+        rule: qcMeasurements.rule,
         level: controlMaterials.level,
         lotNumber: controlMaterials.lotNumber,
         unit: controlMaterials.unit,

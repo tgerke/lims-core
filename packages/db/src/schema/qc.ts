@@ -6,7 +6,9 @@ import { worksheets } from "./worksheets.js";
 
 // QC control samples (ADR-0019): a control material catalog with an established
 // mean/SD per service, and control measurements recorded on a worksheet run and
-// evaluated at entry with single-point Westgard rules (1-2s / 1-3s). Logic in
+// evaluated at entry with Westgard rules — the single-point rules (1-2s / 1-3s)
+// plus the sequential multi-observation rejection rules 2-2s / 4-1s / 10-x over
+// prior measurements of the same control material (ADR-0023). Logic in
 // packages/core/src/qc-control.ts.
 
 // Lab-wide, like the service catalog and specifications it sits beside.
@@ -54,6 +56,8 @@ export const qcMeasurements = pgTable(
     value: numeric("value").notNull(),
     zScore: numeric("z_score").notNull(),
     verdict: text("verdict").notNull(),
+    // The Westgard rule that produced the verdict; null on accept (ADR-0023).
+    rule: text("rule"),
     measuredBy: uuid("measured_by")
       .notNull()
       .references(() => users.id),
