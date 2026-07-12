@@ -147,6 +147,14 @@ export interface Signature {
   invalidatedAt: string | null;
 }
 
+export interface Certificate {
+  id: string;
+  coaNumber: string;
+  contentHash: string;
+  issuedAt: string;
+  issuedBy: string;
+}
+
 export interface Order {
   id: string;
   status: "ordered" | "resulted" | "verified" | "signed" | "cancelled";

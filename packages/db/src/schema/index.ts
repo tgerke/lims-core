@@ -1,6 +1,7 @@
 export * from "./analysis.js";
 export * from "./audit.js";
 export * from "./auth.js";
+export * from "./coa.js";
 export * from "./custody.js";
 export * from "./inventory.js";
 export * from "./kits.js";

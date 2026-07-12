@@ -5,6 +5,7 @@ import { type FormEvent, useState } from "react";
 import {
   type AnalysisService,
   api,
+  type Certificate,
   type Order,
   type SampleDetail,
   type Specification,
@@ -958,6 +959,59 @@ function OrdersPanel({ sample }: { sample: SampleDetail }) {
   );
 }
 
+function CertificatesPanel({ sample }: { sample: SampleDetail }) {
+  const { permissions } = useStudy();
+  const queryClient = useQueryClient();
+  const certs = useQuery({
+    queryKey: ["certificates", sample.id],
+    queryFn: () => api<Certificate[]>(`/samples/${sample.id}/certificates`),
+  });
+  const issue = useMutation({
+    mutationFn: () => api(`/samples/${sample.id}/certificates`, { method: "POST", body: "{}" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["certificates", sample.id] }),
+  });
+  const canIssue = permissions.includes("result.sign");
+
+  return (
+    <Card
+      title="Certificates of Analysis"
+      actions={
+        canIssue ? (
+          <Button variant="secondary" onClick={() => issue.mutate()} disabled={issue.isPending}>
+            Issue CoA
+          </Button>
+        ) : undefined
+      }
+    >
+      <ErrorNote message={issue.error ? issue.error.message : null} />
+      {certs.data?.length === 0 ? (
+        <p className="py-4 text-center text-sm text-slate-500">No certificates issued.</p>
+      ) : (
+        <ul className="divide-y divide-slate-100">
+          {(certs.data ?? []).map((c) => (
+            <li key={c.id} className="flex items-center justify-between py-2.5 text-sm">
+              <div>
+                <p className="font-mono font-medium text-slate-800">{c.coaNumber}</p>
+                <p className="text-xs text-slate-500">
+                  {formatDateTime(c.issuedAt)} by {c.issuedBy}
+                </p>
+              </div>
+              <a
+                href={`/api/certificates/${c.id}/pdf`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm font-medium text-indigo-600 hover:underline"
+              >
+                PDF ↗
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
 export function SampleDetailPage() {
   const { sampleId } = useParams({ from: "/app/samples/$sampleId" });
   const sample = useQuery({
@@ -1002,7 +1056,10 @@ export function SampleDetailPage() {
           <LineagePanel sample={s} />
           <CustodyTimeline sample={s} />
         </div>
-        <OrdersPanel sample={s} />
+        <div className="space-y-6">
+          <OrdersPanel sample={s} />
+          <CertificatesPanel sample={s} />
+        </div>
       </div>
     </div>
   );

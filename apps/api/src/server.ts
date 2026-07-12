@@ -5,6 +5,7 @@ import type { AuthConfig } from "./auth/config.js";
 import { authPlugin } from "./auth/plugin.js";
 import { auditRoutes } from "./routes/audit.js";
 import { calculationRoutes } from "./routes/calculations.js";
+import { coaRoutes } from "./routes/coa.js";
 import { holdRoutes } from "./routes/holds.js";
 import { inventoryRoutes } from "./routes/inventory.js";
 import { kitRoutes } from "./routes/kits.js";
@@ -56,6 +57,7 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
   await server.register(worksheetRoutes);
   await server.register(qcControlRoutes);
   await server.register(calculationRoutes);
+  await server.register(coaRoutes);
   await server.register(resultRoutes);
   await server.register(reportRoutes);
   await server.register(auditRoutes);
