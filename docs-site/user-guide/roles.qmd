@@ -35,3 +35,12 @@ Two separations are enforced, not conventional:
 This is why access checks are authority-scoped rather than a simple
 admin/non-admin split (requirement P11-04): the question is never "are you an
 admin?" but "do you hold this specific authority in this study?"
+
+The same pattern governs the newer workflows. Terminal
+[disposal of a specimen](biobank-operations.qmd) is a supervisor-only authority,
+separate from ordinary sample handling. The lab-wide
+[reagent inventory](inventory.qmd) is authorized on an `inventory.manage`
+authority held in any study, because reagents are not study-scoped. And the
+[QC review board](quality-control.qmd) is deliberately read-only — it introduces
+no new writes and no new authority, so reviewing trends can never alter a
+record.

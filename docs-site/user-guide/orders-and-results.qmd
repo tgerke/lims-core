@@ -31,6 +31,21 @@ attributed author. The result panel shows each version with its value, status,
 who entered it, and the reason.
 :::
 
+![A sample's tests and results: versioned entries, four-eyes verification, and a QC verdict per result.](../images/04-sample-detail.png){.screenshot fig-alt="lims-core sample detail showing several ordered tests, each with versioned results, an entered-then-verified status, and an in-spec or out-of-spec QC column"}
+
+## Specifications and QC status
+
+A service can carry an **acceptance criterion** — a numeric range or a
+qualitative expectation — versioned by supersession. When a result is entered,
+the system evaluates it against the active specification and stamps a QC verdict
+on the result: `pass`, `out_of_spec`, or `not_evaluated` (ADR-0017). The verdict
+is visible in the result panel next to the value, so an out-of-range result is
+obvious at entry rather than at release.
+
+Some services are **calculated** rather than typed in: their value comes from a
+safe expression over other results on the same sample, evaluated server-side
+(ADR-0020). A calculated result is versioned and verified like any other.
+
 ## Four-eyes verification
 
 A result follows a **four-eyes rule**: the person who enters a result cannot
@@ -39,4 +54,6 @@ must be a different user than the enterer — the system rejects a self-verify.
 Verification is what promotes a result toward release.
 
 Only a verified result can be released, and releasing it requires an
-[electronic signature](signatures.qmd).
+[electronic signature](signatures.qmd). Where results are produced in batches on
+an instrument run, the [analytical testing](analytical-testing.qmd) page covers
+worksheets and the run-level QC gate that can hold a whole run's results back.

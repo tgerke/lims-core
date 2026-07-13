@@ -2,65 +2,82 @@
 title: "Roadmap and status"
 ---
 
-lims-core is at its first end-to-end milestone: a thin but genuinely
-front-to-back vertical slice on a production-shaped compliance core. This page
-is the honest summary of what that means. The full, code-checked gap analysis
-is the
+lims-core began as a thin vertical slice and has grown into a broad, working
+build across the biobank and analytical workflows, still on the same
+production-shaped compliance core. This page is the honest summary of where the
+line is. The full, code-checked gap analysis is the
 [completeness review](https://github.com/tgerke/lims-core/blob/main/docs/completeness-review.md);
 the architecture and build plan are in
 [plan.md](https://github.com/tgerke/lims-core/blob/main/docs/plan.md).
 
 ## Where the line is
 
-lims-core today does one workflow — accession, store, order, result, verify,
-sign, audit — and does it the way a modern auditable system should: the audit
+What lims-core does, it does the way a modern auditable system should: the audit
 trail, e-signatures, chain of custody, and least-privilege enforcement live in
 the database as triggers and roles, not in application code a bug could bypass.
+Every regulated behavior added since the slice landed with an ADR, a requirement
+ID in the schema, and a compliance test.
 
-It is **not** a production system for running a regulated trial biobank, and
-**not** a drop-in replacement for a large commercial LIMS platform. Those
-products carry an enormous functional surface — biobanking depth, stability
-studies, electronic lab notebooks, dashboards, no-code workflow designers, broad
-instrument integration — and lims-core implements a single narrow workflow. The
-honest framing is an open, modern nucleus you can grow into that kind of
+It is still **not** a validated production system for running a regulated trial
+biobank, and **not** a drop-in replacement for a large commercial LIMS. Those
+products carry an enormous functional surface — stability studies, electronic
+lab notebooks, no-code workflow designers, broad instrument integration — and a
+formal validation package (IQ/OQ/PQ) that attaches to a specific installation.
+The honest framing is an open, modern nucleus you can grow into that kind of
 platform, not a replacement you can install next quarter.
 
 ## Working today
 
-Specimen accession, 2D barcode labels, freezer storage with a
-one-occupant-per-position constraint, an append-only chain of custody, test
-ordering, versioned four-eyes results, re-authenticated e-signatures, a
-hash-chained per-study audit trail, grant-based access control, OIDC and local
-authentication, and database-enforced immutability — all covered by tests that
-run against a real Postgres in CI.
+Covered by tests that run against a real Postgres in CI:
 
-## Designed and reserved, not built
+**Core & compliance.** Append-only hash-chained per-study audit trail with
+one-click verification, versioned four-eyes results, re-authenticated
+e-signatures, grant-based RBAC scoped to study/site, OIDC and local
+authentication, and database-enforced immutability.
 
-The data model reserves the enum values and lineage structure these will need,
-so a future build won't have to migrate an append-only table — but there is no
-logic or UI yet:
+**Biobank.** Specimen accession with EDC subject reference (never PHI); aliquot
+and derivation lineage with conserved volume/quantity, single-parent derivation
+and many-parent pooling, freeze-thaw counts and concentration; shipments with a
+pack → ship → receive custody handoff; outbound collection kits; count-based
+bulk accessioning and CSV manifest import; an interactive freezer map with
+click-to-place/move and a one-occupant-per-position constraint;
+consent-withdrawal holds (sample- or subject-wide, propagated to descendants)
+and terminal supervisor-only disposal.
 
-- Aliquot and derivation trees, and volume/quantity/concentration on samples.
-- Consent-withdrawal holds and disposal, propagated from the EDC.
-- The analytical module: test specifications and acceptance criteria,
-  calculated results, worksheets, QC samples, and certificate-of-analysis
-  generation.
+**Analytical / QC.** Per-service acceptance criteria evaluated at result entry;
+calculated results via a safe expression engine; worksheets/runs that consume
+reagent lots through the inventory ledger; QC control samples with single- and
+multi-observation Westgard rules; a run-level QC release gate; Certificate-of-
+Analysis PDFs; and a read-only QC review board with Levey-Jennings trending.
 
-## Not started
+**Inventory & reporting.** A lab-wide reagent/lot catalog with expiry and an
+append-only consumption ledger; study-scoped inventory counts, turnaround
+metrics, and a PHI-free manifest CSV export.
 
-The real distance to a production LIMS, listed so it can be prioritized rather
-than discovered: kits and shipments with custody handoff, bulk accessioning and
-plate/rack operations, freezer-map visualization, sample request and
-distribution workflows, reagent and lot inventory, instrument registry and
-result capture, reporting and dashboards, a configurable workflow state machine,
-document/SOP management, and a formal validation package.
+## Still open
 
-## Shortest path to a pilot
+The nearest edges, from the completeness review:
 
-If the goal is to run a sponsor's or CRO's biospecimen management, the highest-
-leverage next steps, in rough order: aliquot workflow with volume fields; kits
-and shipments with custody handoff; bulk accessioning and a freezer-map UI;
-consent-withdrawal holds; reporting and manifest exports; then reagent and lot
-inventory. Each should land with the discipline the slice already shows — a
-schema change plus an ADR, requirement IDs in column comments, and a compliance
-test for any new regulated behavior.
+- **Biobank depth** — multi-level lineage-graph visualization and proportional
+  pooling ratios; kit → collected-sample linkage and par-level kit inventory;
+  drag-and-drop and multi-select freezer-map moves; sample request, reservation,
+  and distribution workflows.
+- **Analytical / QC** — control-type distinctions (blanks/spikes/duplicates vs.
+  level controls), the across-two-levels within-run Westgard rules (cross-level
+  2-2s, R-4s), per-service configurable rule selection, and instrument
+  integration; stability studies and ELN/SDMS-style raw-data capture.
+- **Instrument & interfaces** — instrument registry and calibration scheduling;
+  instrument result capture (ASTM/LIS2-A2, HL7v2) and automation; an integration
+  API for EDC/CTMS and external systems.
+- **Operations & platform** — dashboards and trend/ad-hoc analytics;
+  notifications and temperature-excursion monitoring; a configurable workflow
+  state machine; document/SOP management; a label-template designer; deviation/
+  CAPA; data retention/archival; and a formal validation package.
+
+## Where lims-core is ahead
+
+Worth stating, because it is the reason to invest: the compliance substrate —
+tamper-evident hash-chained audit, DB-enforced immutability, a least-privilege
+runtime role, re-auth e-signatures, per-study audit scoping — is modern and
+cleanly separated, and the stack (TypeScript, Postgres, React) is a far easier
+hiring and maintenance story than a legacy Java/Oracle LIMS.
