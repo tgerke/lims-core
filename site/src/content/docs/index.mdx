@@ -1,0 +1,188 @@
+---
+title: Open-source LIMS for clinical research
+description: An open-source Laboratory Information Management System for clinical research, where the audit trail, e-signatures, and chain of custody are properties of the database.
+template: splash
+tableOfContents: false
+hero:
+  title: A LIMS where compliance is a property of the database
+  tagline: >-
+    Commercial LIMS platforms are powerful, expensive, and closed, and they run
+    on legacy stacks. lims-core is a from-scratch LIMS for clinical-trial
+    biobanking, built on modern web technology, with the audit trail,
+    e-signatures, and chain of custody enforced in the database itself, so a bug
+    or a rushed hotfix has no path around the controls.
+  actions:
+    - text: Get started
+      link: /lims-core/getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: User guide
+      link: /lims-core/user-guide/
+      variant: secondary
+    - text: GitHub
+      link: https://github.com/tgerke/lims-core
+      icon: github
+      variant: minimal
+---
+
+import { Image } from "astro:assets";
+import sampleDetail from "../../assets/screenshots/04-sample-detail.png";
+
+<div class="landing">
+
+<figure class="landing-shot">
+  <Image src={sampleDetail} alt="A lims-core sample record: storage, aliquot and derivation actions, a DataMatrix label, and versioned, four-eyes-verified results with QC status" />
+  <figcaption>
+    A sample record: storage and custody, aliquot and derivation lineage, a
+    DataMatrix label, and versioned, four-eyes-verified results with a QC verdict.
+  </figcaption>
+</figure>
+
+<section>
+
+<h2 id="why-lims-core">Why lims-core</h2>
+
+<div class="landing-grid">
+  <div class="landing-card">
+    <h3>Compliance as schema, not as feature</h3>
+    <p>
+      The audit trail is hash-chained and written by database triggers, results
+      are versioned rows that can never be overwritten, and signatures are bound
+      by hash to the exact record version they approve. The app connects as a
+      least-privilege role that cannot alter any of it.
+    </p>
+  </div>
+  <div class="landing-card">
+    <h3>Biobank and analytical on one core</h3>
+    <p>
+      Samples, tests, results, storage, and custody are modeled once. The
+      biobank workflow came first; the analytical layer — specifications,
+      worksheets, QC controls with Westgard rules, certificates of analysis — is
+      built on the <em>same</em> core as modules, not a rewrite.
+    </p>
+  </div>
+  <div class="landing-card">
+    <h3>A modern, hireable stack</h3>
+    <p>
+      TypeScript, PostgreSQL, and React, not a legacy Java/Oracle platform. That
+      is a far easier maintenance and hiring story, and it is why the compliance
+      controls could be pushed down into the database in the first place.
+    </p>
+  </div>
+  <div class="landing-card">
+    <h3>Immutable by construction</h3>
+    <p>
+      Audit events, custody, results, and signatures reject <code>UPDATE</code>
+      and <code>DELETE</code> by trigger. The runtime role cannot insert audit
+      rows at all, so there is no path — not even a buggy one — to rewrite
+      history.
+    </p>
+  </div>
+  <div class="landing-card">
+    <h3>Open source, no lock-in</h3>
+    <p>
+      AGPL-3.0 licensed: nobody can take this code and sell it back to you as a
+      closed platform. Your specimen data and its full custody record live in a
+      Postgres database you own and can query directly.
+    </p>
+  </div>
+  <div class="landing-card">
+    <h3>Honest about scope</h3>
+    <p>
+      This is a broad, working build on a production-shaped compliance core, not
+      a validated production system and not a drop-in replacement for a large
+      commercial LIMS. The <a href="/lims-core/roadmap/">roadmap</a> is specific
+      about where the line is.
+    </p>
+  </div>
+</div>
+
+</section>
+
+<section>
+
+## Where to start
+
+<div class="landing-grid landing-grid--4">
+  <a class="landing-card" href="/lims-core/getting-started/">
+    <h3>Getting started</h3>
+    <p>
+      Run the full stack locally in five commands, with a seeded demo study and
+      accounts for every role.
+    </p>
+  </a>
+  <a class="landing-card" href="/lims-core/user-guide/">
+    <h3>User guide</h3>
+    <p>
+      The everyday lab tasks — accession, store, ship, aliquot, run assays and
+      QC, sign, and review — screen by screen, with no code.
+    </p>
+  </a>
+  <a class="landing-card" href="/lims-core/compliance/">
+    <h3>Compliance</h3>
+    <p>
+      Each guarantee, the database behavior that enforces it, and the automated
+      test that proves it, with a traceable requirement ID.
+    </p>
+  </a>
+  <a class="landing-card" href="/lims-core/roadmap/">
+    <h3>Roadmap and status</h3>
+    <p>
+      What works today, what is designed, and what is not started — the honest,
+      code-checked gap analysis.
+    </p>
+  </a>
+</div>
+
+</section>
+
+<section>
+
+## Start here by seat
+
+<div class="landing-grid landing-grid--4">
+  <a class="landing-card" href="/lims-core/user-guide/">
+    <h3>Lab and biobank teams</h3>
+    <p>
+      Accessioners, technicians, and lab managers: the receiving desk to a
+      signed result, with the freezer map, shipments, aliquots, and holds.
+    </p>
+  </a>
+  <a class="landing-card" href="/lims-core/why-lims-core/">
+    <h3>Data managers and scientists</h3>
+    <p>
+      An open Postgres data model you can query directly, PHI-free by design,
+      with EDC subject references rather than patient data.
+    </p>
+  </a>
+  <a class="landing-card" href="/lims-core/compliance/">
+    <h3>Auditors and QA</h3>
+    <p>
+      The tamper-evident hash chain, one-click integrity verification, and a
+      requirement-to-test traceability matrix for every control.
+    </p>
+  </a>
+  <a class="landing-card" href="/lims-core/why-lims-core/">
+    <h3>CRO and pharma leadership</h3>
+    <p>
+      The compliance posture, the open-source exit path, and an honest read on
+      what a modern LIMS nucleus can and cannot claim today.
+    </p>
+  </a>
+</div>
+
+</section>
+
+<div class="landing-status">
+  <strong>Status: a broad, working build, not yet validated.</strong> The
+  biobank and analytical workflows both run front-to-back on a production-shaped
+  compliance core, covered by tests that run against a real Postgres in CI. But
+  lims-core is <strong>not yet a validated production system</strong> for
+  running a regulated biobank, and <strong>not a drop-in replacement</strong>
+  for a commercial LIMS. Read the
+  <a href="https://github.com/tgerke/lims-core/blob/main/docs/completeness-review.md">completeness review</a>
+  before planning any deployment, and follow progress on
+  <a href="https://github.com/tgerke/lims-core">GitHub</a>.
+</div>
+
+</div>

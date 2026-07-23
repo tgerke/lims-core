@@ -1,6 +1,0 @@
-/* app screenshots: keep them visually distinct from the page background */
-img.screenshot {
-  border: 1px solid rgba(128, 128, 128, 0.35);
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}

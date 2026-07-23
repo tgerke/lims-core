@@ -1,0 +1,217 @@
+/* lims-core design system: slate palette matching the app chrome, indigo accent. */
+
+:root {
+  /* dark theme (Starlight default root) */
+  --sl-color-accent-low: #312e81; /* indigo-900 */
+  --sl-color-accent: #6366f1; /* indigo-500 */
+  --sl-color-accent-high: #c7d2fe; /* indigo-200 */
+  --sl-color-white: #f8fafc; /* slate-50 */
+  --sl-color-gray-1: #e2e8f0; /* slate-200 */
+  --sl-color-gray-2: #cbd5e1; /* slate-300 */
+  --sl-color-gray-3: #94a3b8; /* slate-400 */
+  --sl-color-gray-4: #64748b; /* slate-500 */
+  --sl-color-gray-5: #334155; /* slate-700 */
+  --sl-color-gray-6: #1e293b; /* slate-800 */
+  --sl-color-black: #0f172a; /* slate-900, the app chrome color */
+
+  --lims-screenshot-border: #334155;
+  --lims-surface: #172033;
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent-low: #e0e7ff; /* indigo-100 */
+  --sl-color-accent: #4f46e5; /* indigo-600 */
+  --sl-color-accent-high: #3730a3; /* indigo-800 */
+  --sl-color-white: #0f172a; /* text: slate-900 */
+  --sl-color-gray-1: #1e293b; /* slate-800 */
+  --sl-color-gray-2: #334155; /* slate-700 */
+  --sl-color-gray-3: #475569; /* slate-600 */
+  --sl-color-gray-4: #94a3b8; /* slate-400 */
+  --sl-color-gray-5: #e2e8f0; /* slate-200 */
+  --sl-color-gray-6: #f1f5f9; /* slate-100 */
+  --sl-color-gray-7: #f8fafc; /* slate-50 */
+  --sl-color-black: #ffffff;
+
+  --lims-screenshot-border: #e2e8f0;
+  --lims-surface: #f8fafc;
+}
+
+/* Content typography: slightly tighter headings, comfortable measure */
+.sl-markdown-content h2 {
+  letter-spacing: -0.015em;
+}
+
+/* Every content image is an app screenshot: card treatment on a deliberate
+   surface so light-chrome screenshots sit well in dark mode too. */
+.sl-markdown-content img {
+  border: 1px solid var(--lims-screenshot-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+  background: #ffffff;
+}
+
+/* Tables: quieter borders, slate header row */
+.sl-markdown-content table {
+  font-size: var(--sl-text-sm);
+}
+.sl-markdown-content th {
+  background: var(--lims-surface);
+}
+
+/* ---------------------------------------------------------------------------
+   Landing page (index.mdx, template: splash)
+--------------------------------------------------------------------------- */
+
+.landing {
+  --landing-max: 72rem;
+}
+
+/* Starlight splash hero: centered, constrained measure, product-style CTAs */
+.hero {
+  padding-block: 3.5rem 1.5rem;
+  grid-template-columns: 1fr;
+}
+
+.hero .copy {
+  align-items: center;
+  text-align: center;
+  margin-inline: auto;
+}
+
+.hero h1 {
+  max-width: 46rem;
+  font-size: clamp(2.2rem, 5vw, 3.5rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.hero .tagline {
+  max-width: 46rem;
+  color: var(--sl-color-gray-3);
+  font-size: var(--sl-text-lg);
+}
+
+.hero .actions {
+  justify-content: center;
+}
+
+.sl-link-button.primary {
+  background: var(--sl-color-accent);
+  border-color: var(--sl-color-accent);
+  color: #ffffff;
+}
+
+.sl-link-button.secondary {
+  border: 1px solid var(--sl-color-gray-5);
+}
+
+.landing-shot {
+  max-width: var(--landing-max);
+  margin: 0 auto 4rem;
+}
+
+.landing-shot img {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--lims-screenshot-border);
+  border-radius: 0.9rem;
+  box-shadow: 0 20px 50px -20px rgb(0 0 0 / 35%);
+  background: #ffffff;
+}
+
+.landing-shot figcaption {
+  text-align: center;
+  color: var(--sl-color-gray-3);
+  font-size: var(--sl-text-sm);
+  margin-top: 0.9rem;
+}
+
+.landing section {
+  max-width: var(--landing-max);
+  margin: 0 auto 4rem;
+}
+
+.landing h2 {
+  font-size: var(--sl-text-2xl);
+  letter-spacing: -0.02em;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.landing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 1rem;
+}
+
+/* Starlight's content sibling-spacing rule adds margin-top to every card
+   after the first, skewing the grid rows; the gap is the only spacing here. */
+.landing-grid > .landing-card {
+  margin-top: 0 !important;
+}
+
+/* 4-card sections: 4-up on wide screens, 2x2 in between, instead of 3+1 */
+@media (min-width: 72rem) {
+  .landing-grid--4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (min-width: 40rem) and (max-width: 71.99rem) {
+  .landing-grid--4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.landing-card {
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.9rem;
+  padding: 1.4rem 1.5rem;
+  background: var(--lims-surface);
+}
+
+.landing-card h3 {
+  font-size: var(--sl-text-base);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.6rem;
+}
+
+.landing-card p {
+  font-size: var(--sl-text-sm);
+  color: var(--sl-color-gray-3);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.landing-card p a {
+  color: var(--sl-color-accent-high);
+}
+
+a.landing-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 120ms ease,
+    transform 120ms ease;
+}
+
+a.landing-card:hover {
+  border-color: var(--sl-color-accent);
+  transform: translateY(-2px);
+}
+
+a.landing-card h3 {
+  color: var(--sl-color-accent-high);
+}
+
+.landing-status {
+  border: 1px solid var(--sl-color-gray-5);
+  border-left: 4px solid var(--sl-color-accent);
+  border-radius: 0.6rem;
+  padding: 1.1rem 1.4rem;
+  font-size: var(--sl-text-sm);
+  color: var(--sl-color-gray-2);
+  max-width: 52rem;
+  margin-inline: auto;
+}
