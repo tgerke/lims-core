@@ -14,7 +14,7 @@ code.
 
 **Documentation & user guide:** <https://tgerke.github.io/lims-core/>
 
-![A sample record: storage, aliquot and derivation actions, a DataMatrix label, and versioned, four-eyes-verified results with QC status](docs-site/images/04-sample-detail.png)
+![A sample record: storage, aliquot and derivation actions, a DataMatrix label, and versioned, four-eyes-verified results with QC status](site/src/assets/screenshots/04-sample-detail.png)
 
 > **Status:** a broad, working build across the biobank and analytical
 > workflows, on a production-shaped compliance core — but not yet a validated

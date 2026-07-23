@@ -12,6 +12,13 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@lims-core/web", "dev"],
       "port": 5174
+    },
+    {
+      "name": "site",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "site", "dev", "--port", "4321"],
+      "port": 4321,
+      "url": "http://localhost:4321/"
     }
   ]
 }

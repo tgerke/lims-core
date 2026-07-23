@@ -1,6 +1,8 @@
 packages:
   - apps/*
   - packages/*
+  - site
 allowBuilds:
   esbuild: true
   "@node-rs/argon2": true
+  sharp: true

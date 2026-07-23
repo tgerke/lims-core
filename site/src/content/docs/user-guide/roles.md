@@ -1,0 +1,45 @@
+---
+title: Roles and access
+description: Grant-based, authority-scoped access, and why system admins hold no lab authority.
+---
+
+Access is grant-based and scoped to a study, and optionally to a single site
+within it. A user has no standing authority anywhere until a grant gives it to
+them for a specific study.
+
+## The roles
+
+| Role | Can |
+| --- | --- |
+| **Lab admin** | Everything within a study, including granting roles. |
+| **Lab manager** | Manage the study; verify and sign results; review the audit trail. |
+| **Technician** | Accession and store samples; order tests; enter results. |
+| **Accessioner** | Accession and store samples only. |
+| **Monitor** | Review audit trails and custody records (external reviewer). |
+| **Read-only** | Read access through study membership; no actions. |
+
+## Separation of duties
+
+Two separations are enforced, not conventional:
+
+- **Enterer ≠ verifier.** The four-eyes rule on results means the person who
+  enters a result cannot verify it. This is checked by the system, not left to
+  procedure — see [orders and results](/lims-core/user-guide/orders-and-results/).
+- **Admin ≠ lab authority.** System administrators, who run the platform, hold
+  no laboratory authority. Administering the software and signing off on lab
+  work are deliberately separate powers; the same person may hold both, but
+  through two distinct grants, and the audit trail reflects which one they were
+  acting under.
+
+This is why access checks are authority-scoped rather than a simple
+admin/non-admin split (requirement P11-04): the question is never "are you an
+admin?" but "do you hold this specific authority in this study?"
+
+The same pattern governs the newer workflows. Terminal
+[disposal of a specimen](/lims-core/user-guide/biobank-operations/) is a supervisor-only authority,
+separate from ordinary sample handling. The lab-wide
+[reagent inventory](/lims-core/user-guide/inventory/) is authorized on an `inventory.manage`
+authority held in any study, because reagents are not study-scoped. And the
+[QC review board](/lims-core/user-guide/quality-control/) is deliberately read-only — it introduces
+no new writes and no new authority, so reviewing trends can never alter a
+record.

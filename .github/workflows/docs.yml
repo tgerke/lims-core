@@ -1,14 +1,14 @@
-# Renders docs-site/ with Quarto and publishes to GitHub Pages.
+# Builds the Astro Starlight site in site/ and publishes to GitHub Pages.
 # One-time repo setup: Settings → Pages → Source: "GitHub Actions".
-# Code blocks in the site are static (not executed), so the build needs
-# no Node or database — just Quarto.
+# The site is static (code blocks are not executed), so the build needs no
+# database — just Node and pnpm.
 name: docs
 
 on:
   push:
     branches: [main]
     paths:
-      - "docs-site/**"
+      - "site/**"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
 
@@ -26,21 +26,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: quarto-dev/quarto-actions/setup@v2
+
+      - uses: pnpm/action-setup@v4
+        # version is taken from packageManager in package.json
+
+      - uses: actions/setup-node@v4
         with:
-          version: 1.7.31
-      - run: quarto render
-        working-directory: docs-site
-      - uses: actions/upload-pages-artifact@v3
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build site
+        run: pnpm --filter site build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: docs-site/_site
+          path: site/dist
 
   deploy:
     needs: build
+    # workflow_dispatch from a branch validates the build without publishing
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - id: deployment
+      - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4

@@ -87,7 +87,7 @@ packages/labels          Barcode/label generation (GS1/2D DataMatrix) — shared
 services/r-engine        R (plumber) analytics sidecar — scaffold only, deferred
 infra/compose.yaml       Postgres 16 + api + web (+ r-engine later)
 docs/                    architecture.md, regulatory-traceability.md, adr/
-docs-site/               Quarto site → GitHub Pages
+site/                    Astro Starlight docs/demo site → GitHub Pages
 CLAUDE.md                house rules + "constraints that will bite you" + LLM-practice rules
 ```
 
@@ -159,7 +159,7 @@ One workflow, working front-to-back, exercising every architectural pillar:
 - `apps/api/src/routes/{samples,storage,orders,results,audit}.ts` — thin routes + co-located `*.test.ts`
 - `apps/web/src/routes/*` — TanStack Router pages for the slice
 - `infra/compose.yaml`, root `package.json`, `biome.json`, `tsconfig.base.json`, `.github/workflows/ci.yml`
-- `CLAUDE.md`, `docs/adr/0001..000N`, `docs/regulatory-traceability.md`, `docs-site/`
+- `CLAUDE.md`, `docs/adr/0001..000N`, `docs/regulatory-traceability.md`, `site/`
 
 ---
 
